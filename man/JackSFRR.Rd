@@ -3,29 +3,28 @@
 \alias{JackSFRR}
 \title{Confidence intervals for raking ratio estimator based on jackknife method}
 \usage{
-JackSFRR(ysA, ysB, pi_A, pi_B, pik_ab_B, pik_ba_A, domains_A, domains_B, N_A,
+JackSFRR(ysA, ysB, piA, piB, pik_ab_B, pik_ba_A, domainsA, domainsB, N_A,
 N_B, conf_level, sdA = "srs", sdB = "srs", strA = NULL, strB = NULL, clusA = NULL,
-clusB = NULL, NhA = NULL, NhB = NULL, NclushA = NULL, NclushB = NULL, fcpA = FALSE,
-fcpB = FALSE)
+clusB = NULL, fcpA = FALSE, fcpB = FALSE)
 }
 \arguments{
-\item{ysA}{A numeric vector of length \eqn{n_A} or a numeric matrix or data frame of dimensions \eqn{n_A} x \eqn{c} containing information about variable of interest from \eqn{s_A}.}
+\item{ysA}{A numeric vector of length \eqn{nA} or a numeric matrix or data frame of dimensions \eqn{nA} x \eqn{c} containing information about variable of interest from \eqn{s_A}.}
 
-\item{ysB}{A numeric vector of length \eqn{n_B} or a numeric matrix or data frame of dimensions \eqn{n_B} x \eqn{c} containing information about variable of interest from \eqn{s_B}.}
+\item{ysB}{A numeric vector of length \eqn{nB} or a numeric matrix or data frame of dimensions \eqn{nB} x \eqn{c} containing information about variable of interest from \eqn{s_B}.}
 
-\item{pi_A}{A numeric vector of length \eqn{n_A} or a square numeric matrix of dimension \eqn{n_A} containing first order or first and second order inclusion probabilities for units included in \eqn{s_A}.}
+\item{piA}{A numeric vector of length \eqn{nA} or a square numeric matrix of dimension \eqn{nA} containing first order or first and second order inclusion probabilities for units included in \eqn{s_A}.}
 
-\item{pi_B}{A numeric vector of length \eqn{n_B} or a square numeric matrix of dimension \eqn{n_B} containing first order or first and second order inclusion probabilities for units included in \eqn{s_B}.}
+\item{piB}{A numeric vector of length \eqn{nB} or a square numeric matrix of dimension \eqn{nB} containing first order or first and second order inclusion probabilities for units included in \eqn{s_B}.}
 
-\item{pik_ab_B}{A numeric vector of size \eqn{n_A} containing first order inclusion probabilities according to sampling desing in frame B for units belonging
+\item{pik_ab_B}{A numeric vector of size \eqn{nA} containing first order inclusion probabilities according to sampling desing in frame B for units belonging
 to overlap domain that have been selected in \eqn{s_A}.}
 
-\item{pik_ba_A}{A numeric vector of size \eqn{n_B} containing first order inclusion probabilities according to sampling desing in frame A for units belonging
+\item{pik_ba_A}{A numeric vector of size \eqn{nB} containing first order inclusion probabilities according to sampling desing in frame A for units belonging
 to overlap domain that have been selected in \eqn{s_B}.}
 
-\item{domains_A}{A character vector of size \eqn{n_A} indicating the domain each unit from \eqn{s_A} belongs to. Possible values are "a" and "ab".}
+\item{domainsA}{A character vector of size \eqn{nA} indicating the domain each unit from \eqn{s_A} belongs to. Possible values are "a" and "ab".}
 
-\item{domains_B}{A character vector of size \eqn{n_B} indicating the domain each unit from \eqn{s_B} belongs to. Possible values are "b" and "ba".}
+\item{domainsB}{A character vector of size \eqn{nB} indicating the domain each unit from \eqn{s_B} belongs to. Possible values are "b" and "ba".}
 
 \item{N_A}{A numeric value indicating the size of frame A}
 
@@ -45,14 +44,6 @@ to overlap domain that have been selected in \eqn{s_B}.}
 
 \item{clusB}{(Optional) A numeric vector indicating the cluster each unit in frame B belongs to, if a cluster sampling or a stratified cluster sampling has been considered in frame B.}
 
-\item{NhA}{(Optional) A numeric vector indicating the population size in each stratum of frame A. This is only needed when \code{sdA = "str"} and \code{fcpA = TRUE}.}
-
-\item{NhB}{(Optional) A numeric vector indicating the population size in each stratum of frame B. This is only needed when \code{sdB = "str"} and \code{fcpB = TRUE}.}
-
-\item{NclushA}{(Optional) A numeric vector indicating the population number of clusters in each stratum of frame A. This is only needed when \code{sdA = "strclu"} and \code{fcpA = TRUE}.}
-
-\item{NclushB}{(Optional) A numeric vector indicating the population number of clusters in each stratum of frame B. This is only needed when \code{sdB = "strclu"} and \code{fcpB = TRUE}.}
-
 \item{fcpA}{(Optional) A logic value indicating if a finite population correction factor should be considered in frame A. Default is FALSE.}
 
 \item{fcpB}{(Optional) A logic value indicating if a finite population correction factor should be considered in frame B. Default is FALSE.}
@@ -70,7 +61,7 @@ In this context, jackknife variance estimator of a estimator \eqn{\hat{Y}_c} is 
 with \eqn{\hat{Y}_c^A(i)} the value of estimator \eqn{\hat{Y}_c} after dropping \eqn{i-th} unit from \code{ysA} and \eqn{\overline{Y}_{c}^{A}} the mean of values \eqn{\hat{Y}_c^A(i)}.
 Similarly, \eqn{\hat{Y}_c^B(lj)} is the value taken by \eqn{\hat{Y}_c} after dropping j-th unit of l-th from sample \code{ysB} and \eqn{\overline{Y}_{c}^{Bl}} is the mean of values \eqn{\hat{Y}_c^B(lj)}.
 If needed, a finite population correction factor can be included in frames by replacing \eqn{\hat{Y}_{c}^{A}(i)} or \eqn{\hat{Y}_{c}^{B}(lj)} with \eqn{\hat{Y}_{c}^{A*}(i)= \hat{Y}_{c}+\sqrt{1-\overline{\pi}_A} (\hat{Y}_{c}^{A}(i) -\hat{Y}_{c})} or
-\eqn{\hat{Y}_{c}^{B*}(lj)= \hat{Y}_{c}+\sqrt{1-\overline{\pi}_B} (\hat{Y}_{c}^{B}(lj) -\hat{Y}_{c})}, where \eqn{\overline{\pi}_A = \sum_{i \in s_A}\pi_{iA}/n_A} and \eqn{\overline{\pi}_B = \sum_{j \in s_B}\pi_{jB}/n_B}
+\eqn{\hat{Y}_{c}^{B*}(lj)= \hat{Y}_{c}+\sqrt{1-\overline{\pi}_B} (\hat{Y}_{c}^{B}(lj) -\hat{Y}_{c})}, where \eqn{\overline{\pi}_A = \sum_{i \in s_A}\pi_{iA}/nA} and \eqn{\overline{\pi}_B = \sum_{j \in s_B}\pi_{jB}/nB}
 A confidence interval for any parameter of interest, \eqn{Y} can be calculated, then, using the pivotal method.
 }
 \examples{
@@ -89,8 +80,7 @@ strA = DatA$Stratum)
 #population correction factor is considered in both frames.
 JackSFRR(DatA$Lei, DatB$Lei, DatA$ProbA, DatB$ProbB, DatA$ProbB,
 DatB$ProbA, DatA$Domain, DatB$Domain, 1735, 1191, 0.95, "str", "srs",
-strA = DatA$Stratum, NhA = c(727, 375, 113, 186, 115, 219), fcpA = TRUE,
-fcpB = TRUE)
+strA = DatA$Stratum, fcpA = TRUE, fcpB = TRUE)
 }
 \references{
 Wolter, K. M. (2007)

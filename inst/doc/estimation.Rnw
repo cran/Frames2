@@ -1,0 +1,180 @@
+%\VignetteIndexEntry{Estimation in a dual frame context}
+\documentclass{article}
+\usepackage{url}
+\usepackage{Sweave}
+\author{A. Arcos, M. Rueda, M. G. Ranalli and D. Molina}
+\title{Estimation in a dual frame context}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+\maketitle
+
+\tableofcontents
+
+\section{Introduction}
+Classic sampling theory usually assumes the existence of one sampling frame containing
+all finite population units. Then, a probability sample is drawn according to a given sampling  design and information collected is used for estimation and inference purposes. But in practice, the assumption that the sampling frame contains all population units is rarely met.
+
+Dual frame sampling approach solves this issue by assuming that two frames are available for sampling and that, overall, they cover the entire target population. The most common situation is the one represented in Figure \ref{figure:Fig1} where the two frames, say frame $A$ and frame $B$, show a  certain degree of overlapping, so it is possible to distinguish three disjoint non-empty domains: domain $a$, containing units belonging to frame $A$ but not to frame $B$; domain $b$, containing units belonging to frame $B$ but not to frame $A$ and domain $ab$, containing units belonging to both frames.
+
+\begin{figure}[htbp]
+    \centering
+        \includegraphics[width = 0.5\textwidth]{Fig1}
+        \caption{Two frames with overlapping.}
+        \label{figure:Fig1}
+\end{figure}
+
+Then, independent samples $s_A$ and $s_B$ of size $n_A$ and $n_B$ are drawn from frame $A$ and frame $B$ and the information included is suitably combined to provide results.
+
+This vignette shows the way package Frames2 operates and their wide options to work with data coming from a dual frame context.
+
+\section{Data description}
+
+To illustrate how functions of the package operate, we will use data sets $DatA$ and $DatB$ (included in the package) as sample data from frame $A$ and frame $B$, respectively. $DatA$ contains information about $n_A = 105$ individuals selected through a stratified random sampling design from the $N_A = 1735$ individuals composing frame $A$. Sample sizes by strata are $n_{hA} = (15, 20, 15, 20, 15, 20)$. On the other hand, a simple random without replacement sample of $n_B = 135$ individuals has been selected from the $N_B = 1191$ included in frame $B$. The size of the overlap domain for this case is $ N_{ab} = 601$.
+
+Let see the first three rows of each data set:
+
+<<>>=
+library (Frames2)
+data(DatA)
+data(DatB)
+
+head (DatA, 3)
+head (DatB, 3)
+@
+
+Each data set incorporates information about three main variables: Feeding, Clothing and Leisure. Additionally, there are two auxiliary variables for the units in frame $A$ (Income and Taxes) and another two variables for units in frame $B$ (Metres2 and Size). Corresponding totals for these auxiliary variables are assumed known in the entire frame and they are $T_{Inc}^A = 4300260, T_{Tax}^A = 215577, T_{M2}^B = 176553$ and $T_{Size}^B = 3529$.
+Finally, a variable indicating the domain each unit belongs to and two variables showing the first order inclusion probabilities for each frame complete the data sets.
+
+Numerical square matrices $PiklA$ and $PiklB$ (also included in the package), with dimensions $n_A = 105$ and $n_B = 135$, are used as probability inclusion matrices. These matrices contains second order inclusion probabilities and first order inclusion probabilities as diagonal elements.
+
+\section{Estimation with no auxiliary information}
+
+When there is no further information than the one on the variables of interest, one can calculate some estimators, as Hartley (1962, 1974) or Fuller-Burmeister (1972) estimators
+<<>>=
+data(PiklA)
+data(PiklB)
+
+yA <- with(DatA, data.frame(Feed, Clo, Lei))
+yB <- with(DatB, data.frame(Feed, Clo, Lei))
+
+Hartley(yA, yB, PiklA, PiklB, DatA$Domain, DatB$Domain)
+FB(yA, yB, PiklA, PiklB, DatA$Domain, DatB$Domain)
+@ 
+
+Results show, by default, estimations for the population total and mean for the considered variables.
+If only first order inclusion probabilities are available, estimates can also be computed
+
+<<>>=
+Hartley(yA, yB, DatA$ProbA, DatB$ProbB, DatA$Domain, DatB$Domain)
+FB(yA, yB, DatA$ProbA, DatB$ProbB, DatA$Domain, DatB$Domain)
+@
+
+Further information about estimation process (as variance estimations or values of parameters involved in estimation, if any) can be displayed by using function \texttt{summary}
+
+<<>>=
+summary(Hartley(yA, yB, DatA$ProbA, DatB$ProbB, DatA$Domain, 
+                DatB$Domain))
+@
+
+Results slightly change when a confidence interval is required. In that case, user has to indicate the confidence level desired for the interval through argument \texttt{conf\_level} (default is \texttt{NULL}) and add it to the list of input parameters. In this case, default output will show $6$ rows for each variable, lower and upper boundaries for confidence intervals are displayed together with estimates. So, one can obtain a $95\%$ confidence interval for estimations computed using Hartley and Fuller-Burmeister estimators in this way
+
+<<>>=
+Hartley(yA, yB, DatA$ProbA, DatB$ProbB, DatA$Domain,
+        DatB$Domain, 0.95)
+FB(yA, yB, DatA$ProbA, DatB$ProbB, DatA$Domain, DatB$Domain, 
+   0.95)
+@ 
+
+When, for units included in overlap domaing, first order inclusion probabilites are known for both frames, estimators as the one proposed by Bankier (1986), Kalton and Anderson (1986) can be computed. To do this, numeric vectors \texttt{pik\_ab\_B} and \texttt{pik\_ba\_A} of lengths $n_A$ and $n_B$ should be added as arguments. While \texttt{pik\_ab\_B} represents first order inclusion probabilities according to sampling design in frame $B$ for units belonging to overlap domain selected in sample drawn from frame $A$, \texttt{pik\_ba\_A} contains first order inclusion probabilities according to sampling design in frame $A$ for units belonging to overlap domain selected in sample drawn from frame $B$.
+
+<<>>=
+BKA(yA, yB, DatA$ProbA, DatB$ProbB, DatA$ProbB, DatB$ProbA,  
+    DatA$Domain, DatB$Domain)
+@ 
+
+These examples include just a few of the estimators that can be used when no auxiliary information is known. Other estimators, as the pseudo-empirical likelihood estimator (Rao and Wu, 2010) or the dual frame calibration estimator (Ranalli et al., 2014), can be also calculated in this case. In this context, function \texttt{Compare} is quite useful, since it returns all possible estimators that can be computed according to the information provided as input
+<<>>=
+Compare(yA, yB, DatA$ProbA, DatB$ProbB, DatA$Domain, DatB$Domain)
+@
+
+\section{Estimation using frame sizes as auxiliary information}
+
+Some of the estimators defined for dual frame data, as raking ratio (Skinner, 1991) or pseudo-maximum likelihood estimators (Skinner and Rao, 1996), require the knowledge of frame sizes to provide results. So, frame sizes need to be incorporated to the function through two additional input arguments, \texttt{N\_A} and \texttt{N\_B}. There is also a group of estimators, including pseudo-empirical likelihood and calibration estimators, that even being able to provide estimations without the need of auxiliary information, can use frame sizes to improve their precision
+<<>>=
+SFRR(yA, yB, DatA$ProbA, DatB$ProbB, DatA$ProbB, DatB$ProbB, 
+     DatA$Domain, DatB$Domain, N_A = 1735, N_B = 1191)
+CalSF(yA, yB, DatA$ProbA, DatB$ProbB, DatA$ProbB, DatB$ProbB, 
+      DatA$Domain, DatB$Domain, N_A = 1735, N_B = 1191)
+@ 
+
+Previous estimators need probabilities of inclusion in both frames for the units in the overlap domain to be computed. This condition may be restrictive in some cases. As an alternative, in cases where frame sizes are known but this condition is not met, it is possible to caculate dual frame estimators as pseudo-maximum likelihood, pseudo-empirical likelihood and dual frame calibration estimators
+
+<<>>=
+PML(yA, yB, DatA$ProbA, DatB$ProbB, DatA$Domain, DatB$Domain, 
+    N_A = 1735, N_B = 1191)
+PEL(yA, yB, DatA$ProbA, DatB$ProbB, DatA$Domain, DatB$Domain, 
+    N_A = 1735, N_B = 1191)
+CalDF(yA, yB, DatA$ProbA, DatB$ProbB, DatA$Domain, DatB$Domain, 
+      N_A = 1735, N_B = 1191)
+@
+
+\section{Estimation using frame and overlap domain sizes as auxiliary information}
+
+In addition to the frame sizes, in some cases, it is possible to know the size of the overlap domain, $N_{ab}$. Generally, this highly improves the precision of the estimates. Functions implementing pseudo-empirical likelihood and calibration estimators can incorporate overlap domain size to the estimation procedure through parameter \texttt{N\_ab}, as shown below
+
+<<>>=
+PEL(yA, yB, DatA$ProbA, DatB$ProbB, DatA$Domain, DatB$Domain, 
+    N_A = 1735, N_B = 1191, N_ab = 601)
+CalSF(yA, yB, DatA$ProbA, DatB$ProbB, DatA$ProbB, DatB$ProbB, 
+      DatA$Domain, DatB$Domain, N_A = 1735, N_B = 1191, 
+      N_ab = 601)
+CalDF(yA, yB, DatA$ProbA, DatB$ProbB, DatA$Domain, DatB$Domain, 
+    N_A = 1735, N_B = 1191, N_ab = 601)
+@
+
+\section{Estimation using additional variables as auxiliary information}
+
+Some of the estimators are defined such that, in addition to frame sizes, they can incorporate auxiliary information about extra variables to the estimation process. This is the case of pseudo-empirical likelihood and calibration estimators. Functions implementing them are also able to manage auxiliary information. To achieve maximum flexibility, these functions are prepared to deal with auxiliary information when it is available only in frame $A$, only in frame $B$ or in both frames.
+
+For instance, auxiliary information collected from frame $A$ should be incorporated to functions through three arguments: \texttt{xsAFrameA} and \texttt{xsBFrameA}, numeric vectors, matrices or data frames (depending on the number of auxiliary variables in the frame); and \texttt{XA}, a numeric value or vector of length indicating population totals for the auxiliary variables considered in frame $A$. Similarly, auxiliary information in frame $B$ is incorporated to each function through arguments \texttt{xsAFrameB}, \texttt{xsBFrameB} and \texttt{XB}. If auxiliary information is available in the whole population, it must be indicated through parameters \texttt{xsT} and \texttt{X}. Let see some examples
+<<>>=
+PEL(yA, yB, PiklA, PiklB, DatA$Domain, DatB$Domain, N_A = 1735, 
+    N_B = 1191, xsAFrameA = DatA$Inc, xsBFrameA = DatB$Inc, 
+    XA = 4300260)
+CalSF(yA, yB, PiklA, PiklB, DatA$ProbB, DatB$ProbA, DatA$Domain, 
+      DatB$Domain, N_A = 1735, N_B = 1191, xsAFrameB = DatA$M2, 
+      xsBFrameB = DatB$M2, XB = 176553)
+CalDF(yA, yB, PiklA, PiklB, DatA$Domain, DatB$Domain, N_A = 1735, 
+      N_B = 1191, xsAFrameA = DatA$Inc, xsBFrameA = DatB$Inc, 
+      xsAFrameB = DatA$M2, xsBFrameB = DatB$M2, XA = 4300260, 
+      XB = 176553)
+@ 
+
+While pseudo-empirical likelihood estimator has been computed considering only auxiliary information in frame A, single frame calibration estimator has been calculated considering auxiliary information in frame B. For the dual frame calibration estimator, auxiliary information in both frames has been taken into account.
+
+\begin{thebibliography}{99}
+
+\bibitem{Arcos2015} Arcos, A., Molina, D., Rueda, M. and Ranalli, M. G. (2015). \emph{Frames2: A Package for Estimation in Dual Frame Surveys}. The R Journal. To be printed.
+
+\bibitem{Bankier1986} Bankier, M.D. (1986). \emph{Estimators Based on Several Stratified Samples With Applications to Multiple Frame Surveys}. Journal of the American Statistical Association, Vol. 81, 1074 - 1079.
+
+\bibitem{Fuller1972} Fuller, W.A. and Burmeister, L.F. (1972). \emph{Estimation for Samples Selected From Two Overlapping Frames} ASA Proceedings of the Social Statistics Sections, 245 - 249.
+
+\bibitem{Hartley1962} Hartley, H.O. (1962). \emph{Multiple Frame Surveys}. Proceedings of the American Statistical Association, Social Statistics Sections, 203 - 206.
+
+\bibitem{Hartley1974} Hartley, H.O. (1974). \emph{Multiple frame methodology and selected applications}. Sankhya C., Vol. 36, 99 - 118.
+
+\bibitem{Kalton1986} Kalton, G. and Anderson, D.W. (1986) \emph{Sampling Rare Populations}. Journal of the Royal Statistical Society, Ser. A, Vol. 149, 65 - 82.
+
+\bibitem{Ranalli2014} Ranalli, M.G., Arcos, A., Rueda, M. and Teodoro, A. (2014). \emph{Calibration estimators in dual frames surveys}. arXiv:1312.0761 [stat.ME].
+
+\bibitem{Rao2010} Rao, J. N. K. and Wu, C. (2010) \emph{Pseudo Empirical Likelihood Inference for Multiple Frame Surveys}. Journal of the American Statistical Association, Vol. 105, 1494 - 1503.
+
+\bibitem{Skinner1991} Skinner, C.J. (1991). \emph{On the Efficiency of Raking Ratio Estimation for Multiple Frame Surveys}. Journal of the American Statistical Association, Vol. 86, 779 - 784.
+
+\bibitem{Skinner1996} Skinner, C. J. and Rao, J. N. K. (1996). \emph{Estimation in Dual Frame Surveys With Complex Designs}. Journal of the American Statistical Association, Vol. 91, 349 - 356.
+
+\end{thebibliography}
+
+\end{document}

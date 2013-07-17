@@ -556,7 +556,8 @@ CalSF = function (ysA, ysB, pi_A, pi_B, pik_ab_B, pik_ba_A, domains_A, domains_B
 							if (is.null(xsAFrameA)){
 
 								if (is.null(xsBFrameB)){
-
+									
+									xsT <- as.matrix(xsT)
 									Xs <- cbind(delta_ab + delta_ba, xsT)
 									total <- c(N_ab, X)
 								}
@@ -621,6 +622,7 @@ CalSF = function (ysA, ysB, pi_A, pi_B, pik_ab_B, pik_ba_A, domains_A, domains_B
 
 								if (is.null(xsBFrameB)){
 
+									xsT <- as.matrix(xsT)
 									Xs <- cbind(delta_a, delta_ab + delta_ba, delta_b, xsT)
 									total <- c(N_A - N_ab, N_ab, N_B - N_ab, X)
 								}
@@ -675,10 +677,8 @@ CalSF = function (ysA, ysB, pi_A, pi_B, pik_ab_B, pik_ba_A, domains_A, domains_B
 										total <- c(N_A - N_ab, N_ab, N_B - N_ab, XA, XB, X) 
 									}
 								}
-
 							}
 						}
-						
 					}
 				}
 				g <- calib (Xs, d, total, method = met)

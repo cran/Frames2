@@ -27,3 +27,4 @@ import(sampling)
 
 S3method(print, EstimatorDF)
 S3method(summary, EstimatorDF)
+

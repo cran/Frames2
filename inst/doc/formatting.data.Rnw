@@ -1,0 +1,77 @@
+%\VignetteIndexEntry{Splitting and formatting data in a dual frame context}
+\documentclass{article}
+\usepackage{url}
+\usepackage{Sweave}
+\author{A. Arcos, M. Rueda, M. G. Ranalli and D. Molina}
+\title{Splitting and formatting data in a dual frame context}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+\maketitle
+
+\tableofcontents
+
+\section{Data description}
+
+To illustrate how to split and format a file including the information collected from a dual frame survey we will use data set $Dat$ (included in the package). This data set includes some of the variables collected in a real dual frame opinion survey about immigration. This survey was conducted using telephone interviews using two sampling frames: one for landlines and another one for cell phones.  From the landline frame, a stratified sample of size 1919 was drawn, while from the cell phone frame, a sample of size 483 was drawn using simple random sampling without replacement. Variables includes in the data set are: \texttt{Drawnby}, which takes value 1 if the unit comes from the landline sample and value 2 if it comes from the cell phone sample; \texttt{Stratum}, which indicates the stratum each unit belongs to (for individuals in cell phone frame, value of this variable is \texttt{NA}); \texttt{Opinion} the response to the opinion question with value 1 representing a favorable opinion about immigration and value 0 representing a unfavorable opinion about immigration; \texttt{Landline} and \texttt{Cell}, which record whether the unit possess a landline or a cell phone, respectively. First order inclusion probabilities are also included in the data set.
+
+Let see the first three rows of the data set:
+
+<<>>=
+library (Frames2)
+data(Dat)
+
+head(Dat, 3)
+@
+
+\section{Formatting data}
+
+From the data of this survey we wish to estimate the number of people with a favorable opinion regarding immigration. In order to use functions of Frames2, we need to split this dataset. The variables we will use to do this are \texttt{Drawnby} and \texttt{Landline} and \texttt{Cell}. First step is to split the original data set in four new different data sets, each one corresponding to one domain.
+
+<<>>=
+attach(Dat)
+
+DomainOnlyLandline <- Dat[Landline == 1 & Cell == 0,]
+DomainBothLandline <- Dat[Drawnby == 1 & Landline == 1 & 
+                            Cell == 1,]
+DomainOnlyCell <- Dat[Landline == 0 & Cell == 1,]
+DomainBothCell <- Dat[Drawnby == 2 & Landline == 1 & 
+                        Cell == 1,]
+@ 
+
+Then, from the domain datasets, we can easily build frame datasets
+
+<<>>=
+FrameLandline <- rbind(DomainOnlyLandline, DomainBothLandline)
+FrameCell <- rbind(DomainOnlyCell, DomainBothCell)
+@
+
+Finally, we only need to label domain of each unit using "a", "b", "ab" or "ba"
+
+<<>>=
+Domain <- c(rep("a", nrow(DomainOnlyLandline)), rep("ab", 
+            nrow(DomainBothLandline)))
+FrameLandline <- cbind(FrameLandline, Domain)
+
+Domain <- c(rep("b", nrow(DomainOnlyCell)), rep("ba", 
+            nrow(DomainBothCell)))
+FrameCell <- cbind(FrameCell, Domain)
+@
+
+Now  dual frame estimators, as Hartley (1962, 1974) estimator, can be computed:
+
+<<>>=
+Hartley(FrameLandline$Opinion, FrameCell$Opinion, 
+        FrameLandline$ProbLandline, FrameCell$ProbCell, 
+        FrameLandline$Domain, FrameCell$Domain)
+@ 
+
+\begin{thebibliography}{99}
+
+\bibitem{Hartley1962} Hartley, H.O. (1962). \emph{Multiple Frame Surveys}. Proceedings of the American Statistical Association, Social Statistics Sections, 203 - 206.
+
+\bibitem{Hartley1974} Hartley, H.O. (1974). \emph{Multiple frame methodology and selected applications}. Sankhya C., Vol. 36, 99 - 118.
+
+\end{thebibliography}
+
+\end{document}
