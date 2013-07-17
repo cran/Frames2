@@ -1,8 +1,8 @@
 #' @name WeightsCalSF
 #' @aliases WeightsCalSF
-#' @title g-weights for the single frame calibration estimator
+#' @title g-weights for the SF calibration estimator
 #' 
-#' @description Computes the g-weights for the single frame calibration estimator. 
+#' @description Computes the g-weights for the SF calibration estimator. 
 #' 
 #' @usage WeightsCalSF(ysA, ysB, pi_A, pi_B, pik_ab_B, pik_ba_A, domains_A, domains_B, 
 #' N_A = NULL, N_B = NULL, N_ab = NULL, xsAFrameA = NULL, xsBFrameA = NULL, 
@@ -46,38 +46,34 @@
 #'              \item \eqn{N_A, N_B} and \eqn{N_{ab}} known
 #'      }
 #'  }
-#' @return A numeric vector containing the g-weights for the single frame calibration estimator.
+#' @return A numeric vector containing the g-weights for the SF calibration estimator.
 #' @references Ranalli, M. G., Arcos, A., Rueda, M. and Teodoro, A. (2013)
 #'  \emph{Calibration estimationn in dual frame surveys}. arXiv:1312.0761 [stat.ME]
 #' @references Deville, J. C., S\"arndal, C. E. (1992)
 #'  \emph{Calibration estimators in survey sampling.}
 #'  Journal of the American Statistical Association, 87, 376 - 382
 #' @examples
-#' data(HouseholdsA)
-#' dataA <- attach(HouseholdsA)
-#' detach(HouseholdsA)
-#' data(HouseholdsB)
-#' dataB <- attach(HouseholdsB)
-#' detach(HouseholdsB)
+#' data(DatA)
+#' data(DatB)
 #' data(PiklA)
 #' data(PiklB)
 #' 
-#' #Let calculate g-weights for the single frame calibration estimator for variable Clothing,
+#' #Let calculate g-weights for the SF calibration estimator for variable Clothing,
 #' #without considering any auxiliary information
-#' WeightsCalSF(dataA$Clothing, dataB$Clothing, PiklA, PiklB, dataA$ProbB, dataB$ProbA, 
-#' dataA$Domain, dataB$Domain)
+#' WeightsCalSF(DatA$Clo, DatB$Clo, PiklA, PiklB, DatA$ProbB, DatB$ProbA, 
+#' DatA$Domain, DatB$Domain)
 #' 
-#' #Now, let calculate g-weights for the single frame calibration estimator for variable Leisure
+#' #Now, let calculate g-weights for the SF calibration estimator for variable Leisure
 #' #when the frame sizes and the overlap domain size are known
-#' WeightsCalSF(dataA$Leisure, dataB$Leisure, PiklA, PiklB, dataA$ProbB, dataB$ProbA, 
-#' dataA$Domain, dataB$Domain, N_A = 1735, N_B = 1191, N_ab = 601)
+#' WeightsCalSF(DatA$Lei, DatB$Lei, PiklA, PiklB, DatA$ProbB, DatB$ProbA, 
+#' DatA$Domain, DatB$Domain, N_A = 1735, N_B = 1191, N_ab = 601)
 #' 
-#' #Finally, let calculate g-weights for the single frame calibration estimator
+#' #Finally, let calculate g-weights for the SF calibration estimator
 #' #for variable Feeding, considering Income and Metres2 as auxiliary 
 #' #variables and with frame sizes and overlap domain size known.
-#' WeightsCalSF(dataA$Feeding, dataB$Feeding, PiklA, PiklB, dataA$ProbB, dataB$ProbA, 
-#' dataA$Domain, dataB$Domain, N_A = 1735, N_B =  1191, N_ab = 601, xsAFrameA = dataA$Income, 
-#' xsBFrameA = dataB$Income, xsAFrameB = dataA$Metres2, xsBFrameB = dataB$Metres2, 
+#' WeightsCalSF(DatA$Feed, DatB$Feed, PiklA, PiklB, DatA$ProbB, DatB$ProbA, 
+#' DatA$Domain, DatB$Domain, N_A = 1735, N_B =  1191, N_ab = 601, xsAFrameA = DatA$Inc, 
+#' xsBFrameA = DatB$Inc, xsAFrameB = DatA$M2, xsBFrameB = DatB$M2, 
 #' XA = 4300260, XB = 176553)
 #' @export
 WeightsCalSF = function (ysA, ysB, pi_A, pi_B, pik_ab_B, pik_ba_A, domains_A, domains_B, N_A = NULL, N_B = NULL, N_ab = NULL, xsAFrameA = NULL, xsBFrameA = NULL, xsAFrameB = NULL, xsBFrameB = NULL, xsT = NULL, XA = NULL, XB = NULL, X = NULL, met = "linear") {
@@ -108,9 +104,9 @@ WeightsCalSF = function (ysA, ysB, pi_A, pi_B, pik_ab_B, pik_ba_A, domains_A, do
 		stop("Domains from frame A are not correct.")
 	if (length(which(domains_B == "b")) + length(which(domains_B == "ba")) != length(domains_B))
 		stop("Domains from frame B are not correct.")
-	if ((is.null (N_A) == "TRUE" & is.null (N_B) == "FALSE") | (is.null (N_A) == "FALSE" & is.null (N_B) == "TRUE"))
+	if ((is.null (N_A) & !is.null (N_B)) | (!is.null (N_A) & is.null (N_B)))
 		stop("Only one value has been indicated for N_A and N_B. This is not valid. Both or none should be indicated.")
-	if (is.null (N_ab) == "FALSE" & (is.null (N_A) == "TRUE" | is.null (N_B) == "TRUE"))
+	if (!is.null (N_ab) & (is.null (N_A) | is.null (N_B)))
 		stop("A value for N_ab has been provided, but values for N_A or N_B are missing. This is not a possible option.")
 	if ((is.null (xsAFrameA) & !is.null (xsBFrameA)) | (!is.null (xsAFrameA) & is.null (xsBFrameA)))
 		stop("Auxiliary information from frame A is available only in one frame. This is not a possible option.")

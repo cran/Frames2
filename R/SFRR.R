@@ -1,8 +1,8 @@
 #' @name SFRR
 #' @aliases SFRR
-#' @title Single frame raking ratio estimator
+#' @title Raking ratio estimator
 #' 
-#' @description Produces estimates for population total and mean using the single frame raking ratio estimator from survey data obtained
+#' @description Produces estimates for population total and mean using the raking ratio estimator from survey data obtained
 #'  from a dual frame sampling desing. Confidence intervals are also computed, if required.
 #' 
 #' @usage SFRR(ysA, ysB, pi_A, pi_B, pik_ab_B, pik_ba_A, domains_A, domains_B, N_A, N_B, 
@@ -20,7 +20,7 @@
 #' @param N_A A numeric value indicating the size of frame A
 #' @param N_B A numeric value indicating the size of frame B
 #' @param conf_level (Optional) A numeric value indicating the confidence level for the confidence intervals, if desired.
-#' @details Single frame raking ratio estimator of population total is given by
+#' @details Raking ratio estimator of population total is given by
 #'  \deqn{\hat{Y}_{SFRR} = \frac{N_A - \hat{N}_{ab,rake}}{\hat{N}_a^A}\hat{Y}_a^A + \frac{N_B - \hat{N}_{ab,rake}}{\hat{N}_b^B}\hat{Y}_b^B + \frac{\hat{N}_{ab,rake}}{\hat{N}_{abS}}\hat{Y}_{abS}}
 #'  where \eqn{\hat{Y}_{abS} = \sum_{i \in s_{ab}^A}\tilde{d}_i^Ay_i + \sum_{i \in s_{ab}^B}\tilde{d}_i^By_i, \hat{N}_{abS} = \sum_{i \in s_{ab}^A}\tilde{d}_i^A + \sum_{i \in s_{ab}^B}\tilde{d}_i^B} and
 #'  \eqn{\hat{N}_{ab,rake}} is the smallest root of the quadratic equation \eqn{\hat{N}_{ab,rake}x^2 - [\hat{N}_{ab,rake}(N_A + N_B) + \hat{N}_{aS}\hat{N}_{bS}]x + \hat{N}_{ab,rake}N_AN_B = 0},
@@ -38,11 +38,18 @@
 #'  \right.}
 #'  being \eqn{d_i^A} and \eqn{d_i^B} the design weights, obtained as the inverse of the first order inclusion probabilities, that is \eqn{d_i^A = 1/\pi_i^A} and \eqn{d_i^B = 1/\pi_i^B}.
 #'  
-#'  To obtain an estimator of the variance for this estimator, one has taken into account that single frame raking ratio estimator coincides with single frame calibration estimator when frame sizes are known and "raking"
-#'  method is used. So, one can use here Deville's expression to calculate an estimator for the variance of the single frame raking ratio estimator
+#'  To obtain an estimator of the variance for this estimator, one has taken into account that raking ratio estimator coincides with SF calibration estimator when frame sizes are known and "raking"
+#'  method is used. So, one can use here Deville's expression to calculate an estimator for the variance of the raking ratio estimator
 #'  \deqn{\hat{V}(\hat{Y}_{SFRR}) = \frac{1}{1-\sum_{k\in s} a_k^2}\sum_{k\in s}(1-\pi_k)\left(\frac{e_k}{\pi_k} - \sum_{l\in s} a_{l} \frac{e_l}{\pi_l}\right)^2}
 #'  where \eqn{a_k=(1-\pi_k)/\sum_{l\in s} (1-\pi_l)} and \eqn{e_k} are the residuals of the regression with auxiliary variables as regressors.
-#' @return A numeric matrix containing estimations of population total and population mean for considered values.
+#' @return \code{SFRR} returns an object of class "EstimatorDF" which is a list with, at least, the following components:
+#'  \item{Call}{the matched call.}
+#'  \item{Est}{total and mean estimation for main variable(s).}
+#'  \item{VarEst}{variance estimation for main variable(s).}
+#'  If parameter \code{conf_level} is different from \code{NULL}, object includes component
+#'  \item{ConfInt}{total and mean estimation and confidence intervals for main variables(s).}
+#'  In addition, components \code{TotDomEst} and \code{MeanDomEst} are available when estimator is based on estimators of the domains. Component \code{Param} shows value of parameters involded in calculation of the estimator (if any).
+#'  By default, only \code{Est} component (or \code{ConfInt} component, if parameter \code{conf_level} is different from \code{NULL}) is shown. It is possible to access to all the components of the objects by using function \code{summary}.
 #' @references Lohr, S. and Rao, J.N.K. (2000).
 #' \emph{Inference in Dual Frame Surveys}. Journal of the American Statistical Association, Vol. 95, 271 - 280.
 #' @references Rao, J.N.K. and Skinner, C.J. (1996).
@@ -53,23 +60,19 @@
 #' \emph{On the Efficiency of Raking Ratio Estimation for Multiple Frame Surveys}. Journal of the American Statistical Association, Vol. 86, 779 - 784.
 #' @seealso \code{\link{JackSFRR}}
 #' @examples
-#' data(HouseholdsA)
-#' dataA <- attach(HouseholdsA)
-#' detach(HouseholdsA)
-#' data(HouseholdsB)
-#' dataB <- attach(HouseholdsB)
-#' detach(HouseholdsB)
+#' data(DatA)
+#' data(DatB)
 #' data(PiklA)
 #' data(PiklB)
 #' 
-#' #Let calculate single frame raking ratio estimator for population total for variable Clothing
-#' SFRR(dataA$Clothing, dataB$Clothing, PiklA, PiklB, dataA$ProbB, dataB$ProbA, dataA$Domain, 
-#' dataB$Domain, 1735, 1191)
+#' #Let calculate raking ratio estimator for population total for variable Clothing
+#' SFRR(DatA$Clo, DatB$Clo, PiklA, PiklB, DatA$ProbB, DatB$ProbA, DatA$Domain, 
+#' DatB$Domain, 1735, 1191)
 #' 
-#' #Now, let calculate single frame raking ratio estimator and a 90% confidence interval for 
+#' #Now, let calculate raking ratio estimator and a 90% confidence interval for 
 #' #population total for variable Feeding, considering only first order inclusion probabilities
-#' SFRR(dataA$Feeding, dataB$Feeding, dataA$ProbA, dataB$ProbB, dataA$ProbB, dataB$ProbA, 
-#' dataA$Domain, dataB$Domain, 1735, 1191, 0.90)
+#' SFRR(DatA$Feed, DatB$Feed, DatA$ProbA, DatB$ProbB, DatA$ProbB, DatB$ProbA, 
+#' DatA$Domain, DatB$Domain, 1735, 1191, 0.90)
 #' @export
 SFRR = function (ysA, ysB, pi_A, pi_B, pik_ab_B, pik_ba_A, domains_A, domains_B, N_A, N_B, conf_level = NULL)
 {
@@ -91,13 +94,9 @@ SFRR = function (ysA, ysB, pi_A, pi_B, pik_ab_B, pik_ba_A, domains_A, domains_B,
 		stop("There are missing values in domains from frame A.")
 	if (any(is.na(domains_B)))
 		stop("There are missing values in domains from frame B.")
-	if (any(is.na(pik_ab_B)))
-		stop("There are missing values in pik for frame B for units in domain ab from frame A.")
-	if (any(is.na(pik_ba_A)))
-		stop("There are missing values in pik for frame A for units in domain ba from frame B.")
-	if (any(pik_ab_B[domains_A == "ab"] == 0))
+	if (any(is.na(pik_ab_B[domains_A == "ab"])))
 		stop("Some values in pik_ab_B are 0 when they should not.")
-	if (any(pik_ba_A[domains_B == "ba"] == 0))
+	if (any(is.na(pik_ba_A[domains_B == "ba"])))
 		stop("Some values in pik_ba_A are 0 when they should not.")
 	if (ncol(ysA) != ncol(ysB))
 		stop("Number of variables does not match.")
@@ -110,30 +109,30 @@ SFRR = function (ysA, ysB, pi_A, pi_B, pik_ab_B, pik_ba_A, domains_A, domains_B,
 	if (length(which(domains_B == "b")) + length(which(domains_B == "ba")) != length(domains_B))
 		stop("Domains from frame B are not correct.")
 
-	if (is.null(conf_level)) {
-		r = 2
-		rnames <- c("Total", "Mean")
-	}
-	else { 
-		r = 6
-		rnames <- c("Total", "Upper End", "Lower End", "Mean", "Upper End", "Lower End")
-	}
+	cl <- match.call()
 
 	n_A <- nrow(ysA)
 	n_B <- nrow(ysB)
 	c <- ncol(ysA)
-	results <- matrix(NA, nrow = r, ncol = c)
-	rownames(results) <- rnames
-	colnames(results) <- cnames
 
 	ysA <- cbind(rep(1, n_A), ysA)
 	ysB <- cbind(rep(1, n_B), ysB)
-	c1 <- ncol(ysA)
 
 	ones_a_A <- Domains (rep (1, n_A), domains_A, "a")
 	ones_b_B <- Domains (rep (1, n_B), domains_B, "b")
 	ones_ab_A <- Domains (rep (1, n_A), domains_A, "ab")
 	ones_ab_B <- Domains (rep (1, n_B), domains_B, "ba")
+
+	est <- matrix(, 2, c, dimnames = list(c("Total", "Mean"), cnames))
+	varest <- matrix(, 2, c, dimnames = list(c("Var. Total", "Var. Mean"), cnames))
+	totdom <- matrix(, 3, c, dimnames = list(c("Total dom. a", "Total abS", "Total dom. b"), cnames))
+	meandom <- matrix(, 3, c, dimnames = list(c("Mean dom. a", "Mean abS", "Mean dom. b"), cnames))
+	par <- 	NULL
+	if (is.null(conf_level))
+		interv <- NULL
+	else
+		interv <- matrix(, 6, c, dimnames = list(c("Total", "Lower Bound", "Upper Bound", "Mean", "Lower Bound", "Upper Bound"), cnames))
+
 
 	if (!is.null(dim(drop(pi_A))) & !is.null(dim(drop(pi_B)))) {
 
@@ -158,7 +157,7 @@ SFRR = function (ysA, ysB, pi_A, pi_B, pik_ab_B, pik_ba_A, domains_A, domains_B,
 
 		Nhat_ab_rake <- (- term_b - sqrt(term_b * term_b - 4 * term_a * term_c)) / (2 * term_a)
  
-		for (k in 1:c1) {
+		for (k in 1:(c+1)) {
 
 			data_a_A <- Domains (ysA[,k], domains_A, "a")
 			data_b_B <- Domains (ysB[,k], domains_B, "b")
@@ -166,35 +165,44 @@ SFRR = function (ysA, ysB, pi_A, pi_B, pik_ab_B, pik_ba_A, domains_A, domains_B,
 			Yhat_b_B <- HT (data_b_B, diag(pi_B))
 			Yhat_abS <- sum (wi_A * ysA[,k] * ones_ab_A) + sum(wi_B * ysB[,k] * ones_ab_B)
 
-			if (k == 1)
+			if (k == 1){
+				domain_size_estimation <- c(Yhat_a_A, Yhat_abS, Yhat_b_B)
 				size_estimation <- sum((N_A - Nhat_ab_rake) * Yhat_a_A / Nhat_a_A, (N_B - Nhat_ab_rake) * Yhat_b_B / Nhat_b_B, Nhat_ab_rake / Nhat_abS * Yhat_abS, na.rm = TRUE)
+			}
 			else
 				total_estimation <- sum((N_A - Nhat_ab_rake) * Yhat_a_A / Nhat_a_A, (N_B - Nhat_ab_rake) * Yhat_b_B / Nhat_b_B, Nhat_ab_rake / Nhat_abS * Yhat_abS, na.rm = TRUE) 
 			
 			if (k > 1) {
+
+				totdom[,k-1] <- c(Yhat_a_A, Yhat_abS, Yhat_b_B)
+				meandom[,k-1] <- totdom[,k-1]/domain_size_estimation
+
 				mean_estimation <- total_estimation / size_estimation
-				results[,k-1] <- c(total_estimation, mean_estimation)
+				est[,k-1] <- c(total_estimation, mean_estimation)
+
+				d <- c(wi_A, wi_B)
+				n <- n_A + n_B
+				sample <- c(ysA[,k], ysB[,k])
+				domains <- factor(c(as.character(domains_A), as.character(domains_B)))
+				delta_a <- Domains (rep (1, n), domains, "a")
+				delta_ab <- Domains (rep (1, n), domains, "ab")
+				delta_b <- Domains (rep (1, n), domains, "b")
+				delta_ba <- Domains (rep (1, n), domains, "ba")
+				Xs <- cbind(delta_a, delta_ab + delta_ba, delta_b)
+				total <- c(N_A - Nhat_ab_rake, Nhat_ab_rake, N_B - Nhat_ab_rake)
+				g <- calib (Xs, d, total, method = "raking")
+
+				Vhat_Yhat_SFRR <- varest(sample, Xs, 1/d, g)
+				Vhat_Ymeanhat_SFRR <- 1/size_estimation^2 * Vhat_Yhat_SFRR
+				varest[,k-1] <- c(Vhat_Yhat_SFRR, Vhat_Ymeanhat_SFRR)
 
 				if (!is.null(conf_level)) {
 
-					d <- c(wi_A, wi_B)
-					n <- n_A + n_B
-					sample <- c(ysA[,k], ysB[,k])
-					domains <- factor(c(as.character(domains_A), as.character(domains_B)))
-					delta_a <- Domains (rep (1, n), domains, "a")
-					delta_ab <- Domains (rep (1, n), domains, "ab")
-					delta_b <- Domains (rep (1, n), domains, "b")
-					delta_ba <- Domains (rep (1, n), domains, "ba")
-					Xs <- cbind(delta_a, delta_ab + delta_ba, delta_b)
-					total <- c(N_A - Nhat_ab_rake, Nhat_ab_rake, N_B - Nhat_ab_rake)
-					g <- calib (Xs, d, total, method = "raking")
-
-					Vhat_Yhat_SFRR <- varest(sample, Xs, 1/d, g)
 					total_upper <- total_estimation + qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Yhat_SFRR)
 					total_lower <- total_estimation - qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Yhat_SFRR)
-					mean_upper <- mean_estimation + qnorm(1 - (1 - conf_level) / 2) * sqrt(1/size_estimation^2 * Vhat_Yhat_SFRR)
-					mean_lower <- mean_estimation - qnorm(1 - (1 - conf_level) / 2) * sqrt(1/size_estimation^2 * Vhat_Yhat_SFRR)
-					results[,k-1] <- c(total_estimation, total_upper, total_lower, mean_estimation, mean_upper, mean_lower)
+					mean_upper <- mean_estimation + qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Ymeanhat_SFRR)
+					mean_lower <- mean_estimation - qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Ymeanhat_SFRR)
+					interv[,k-1] <- c(total_estimation, total_lower, total_upper, mean_estimation, mean_lower, mean_upper)
 		
 				}
 			}
@@ -220,7 +228,7 @@ SFRR = function (ysA, ysB, pi_A, pi_B, pik_ab_B, pik_ba_A, domains_A, domains_B,
 
 			Nhat_ab_rake <- (- term_b - sqrt(term_b * term_b - 4 * term_a * term_c)) / (2 * term_a)
  
-			for (k in 1:c1) {
+			for (k in 1:(c+1)) {
 
 				data_a_A <- Domains (ysA[,k], domains_A, "a")
 				data_b_B <- Domains (ysB[,k], domains_B, "b")
@@ -228,35 +236,44 @@ SFRR = function (ysA, ysB, pi_A, pi_B, pik_ab_B, pik_ba_A, domains_A, domains_B,
 				Yhat_b_B <- HT (data_b_B, pi_B)
 				Yhat_abS <- sum (wi_A * ysA[,k] * ones_ab_A) + sum(wi_B * ysB[,k] * ones_ab_B)
 
-				if (k == 1)
+				if (k == 1){
+					domain_size_estimation <- c(Yhat_a_A, Yhat_abS, Yhat_b_B)
 					size_estimation <- sum((N_A - Nhat_ab_rake) * Yhat_a_A / Nhat_a_A, (N_B - Nhat_ab_rake) * Yhat_b_B / Nhat_b_B, Nhat_ab_rake / Nhat_abS * Yhat_abS, na.rm = TRUE)
+				}
 				else
 					total_estimation <- sum((N_A - Nhat_ab_rake) * Yhat_a_A / Nhat_a_A, (N_B - Nhat_ab_rake) * Yhat_b_B / Nhat_b_B, Nhat_ab_rake / Nhat_abS * Yhat_abS, na.rm = TRUE)
 				
 				if (k > 1) {
+
+					totdom[,k-1] <- c(Yhat_a_A, Yhat_abS, Yhat_b_B)
+					meandom[,k-1] <- totdom[,k-1]/domain_size_estimation
+
 					mean_estimation <- total_estimation / size_estimation
-					results[,k-1] <- c(total_estimation, mean_estimation)
+					est[,k-1] <- c(total_estimation, mean_estimation)
+
+					d <- c(wi_A, wi_B)
+					n <- n_A + n_B
+					sample <- c(ysA[,k], ysB[,k])
+					domains <- factor(c(as.character(domains_A), as.character(domains_B)))
+					delta_a <- Domains (rep (1, n), domains, "a")
+					delta_ab <- Domains (rep (1, n), domains, "ab")
+					delta_b <- Domains (rep (1, n), domains, "b")
+					delta_ba <- Domains (rep (1, n), domains, "ba")
+					Xs <- cbind(delta_a, delta_ab + delta_ba, delta_b)
+					total <- c(N_A - Nhat_ab_rake, Nhat_ab_rake, N_B - Nhat_ab_rake)
+					g <- calib (Xs, d, total, method = "raking")
+
+					Vhat_Yhat_SFRR <- varest(sample, Xs, 1/d, g)
+					Vhat_Ymeanhat_SFRR <- 1/size_estimation^2 * Vhat_Yhat_SFRR
+					varest[,k-1] <- c(Vhat_Yhat_SFRR, Vhat_Ymeanhat_SFRR)
 
 					if (!is.null(conf_level)) {
 
-						d <- c(wi_A, wi_B)
-						n <- n_A + n_B
-						sample <- c(ysA[,k], ysB[,k])
-						domains <- factor(c(as.character(domains_A), as.character(domains_B)))
-						delta_a <- Domains (rep (1, n), domains, "a")
-						delta_ab <- Domains (rep (1, n), domains, "ab")
-						delta_b <- Domains (rep (1, n), domains, "b")
-						delta_ba <- Domains (rep (1, n), domains, "ba")
-						Xs <- cbind(delta_a, delta_ab + delta_ba, delta_b)
-						total <- c(N_A - Nhat_ab_rake, Nhat_ab_rake, N_B - Nhat_ab_rake)
-						g <- calib (Xs, d, total, method = "raking")
-
-						Vhat_Yhat_SFRR <- varest(sample, Xs, 1/d, g)
 						total_upper <- total_estimation + qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Yhat_SFRR)
 						total_lower <- total_estimation - qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Yhat_SFRR)
-						mean_upper <- mean_estimation + qnorm(1 - (1 - conf_level) / 2) * sqrt(1/size_estimation^2 * Vhat_Yhat_SFRR)
-						mean_lower <- mean_estimation - qnorm(1 - (1 - conf_level) / 2) * sqrt(1/size_estimation^2 * Vhat_Yhat_SFRR)
-						results[,k-1] <- c(total_estimation, total_upper, total_lower, mean_estimation, mean_upper, mean_lower)	
+						mean_upper <- mean_estimation + qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Ymeanhat_SFRR)
+						mean_lower <- mean_estimation - qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Ymeanhat_SFRR)
+						interv[,k-1] <- c(total_estimation, total_lower, total_upper, mean_estimation, mean_lower, mean_upper)	
 					}
 				}
 			}
@@ -265,5 +282,8 @@ SFRR = function (ysA, ysB, pi_A, pi_B, pik_ab_B, pik_ba_A, domains_A, domains_B,
 			stop("Invalid option: Probability vector in one frame and probability matrix in the other frame. Type of both structures must match.")
 		
 	}
-	return (results)			
+   	results = list(Call = cl, Est = est, VarEst = varest, TotDomEst = totdom, MeanDomEst = meandom, Param = par, ConfInt = interv)
+   	class(results) = "EstimatorDF"
+   	attr(results, "attributesDF") = conf_level
+   	return(results)			
 }

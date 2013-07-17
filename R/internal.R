@@ -76,3 +76,41 @@ PELConfInt = function (a, ys, ds, YEL, nss, ps)
 	res[2] <- (t1 + t2) / 2
 	return(res)
 }
+
+`print.EstimatorDF`=function(x, ...){
+  if (is.null(attr(x, "attributesDF")[1])){
+  	cat("\nEstimation:\n")
+  	print(x$Est)
+  }
+  else {
+	cat("\nEstimation and ",attr(x, "attributesDF")[1]*100,"% Confidence Intervals:\n")
+  	print(x$ConfInt)
+  }
+}
+
+`summary.EstimatorDF`=function(object, ...){
+  cat("\nCall:\n")
+  print(object$Call)
+  cat("\nEstimation:\n")
+  print(object$Est)
+  if (!is.null(object$VarEst)){
+	cat("\nVariance Estimation:\n")
+  	print(object$VarEst)
+  }
+  if (!is.null(object$TotDomEst)){
+  	cat("\nTotal Domain Estimations:\n")
+  	print(object$TotDomEst)
+  }
+  if (!is.null(object$MeanDomEst)){
+  	cat("\nMean Domain Estimations:\n")
+  	print(object$MeanDomEst)
+  }
+  if(!is.null(object$Param)){
+  	cat("\nParameters:\n")
+  	print(object$Param)
+  }
+  if (!is.null(attr(object, "attributesDF")[1])){
+ 	cat("\n",attr(object, "attributesDF")[1]*100,"% Confidence Intervals:\n")
+  	print(object$ConfInt)
+  }
+}

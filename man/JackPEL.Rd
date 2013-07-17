@@ -5,8 +5,9 @@
 \usage{
 JackPEL(ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = NULL,
 N_ab = NULL, XsAFrameA = NULL, XsBFrameA = NULL, XsAFrameB = NULL, XsBFrameB = NULL,
-XA = NULL, XB = NULL, conf_level, sdA = "srs", sdB = "srs", nhA = NULL, NhA = NULL,
-nhB = NULL, NhB = NULL, fcpA = FALSE, fcpB = FALSE)
+XA = NULL, XB = NULL, conf_level, sdA = "srs", sdB = "srs", strA = NULL, strB = NULL,
+clusA = NULL,clusB = NULL, NhA = NULL, NhB = NULL, NclushA = NULL, NclushB = NULL,
+fcpA = FALSE, fcpB = FALSE)
 }
 \arguments{
 \item{ysA}{A numeric vector of length \eqn{n_A} or a numeric matrix or data frame of dimensions \eqn{n_A} x \eqn{c} containing information about variable of interest from \eqn{s_A}.}
@@ -41,21 +42,29 @@ nhB = NULL, NhB = NULL, fcpA = FALSE, fcpB = FALSE)
 
 \item{conf_level}{A numeric value indicating the confidence level for the confidence intervals.}
 
-\item{sdA}{(Optional) A character vector indicating the sampling design considered in frame A. Possible values are "srs" (simple random sampling), "pps" (probabilities proportional to size sampling) and "str" (stratified sampling). Default is "srs".}
+\item{sdA}{(Optional) A character vector indicating the sampling design considered in frame A. Possible values are "srs" (simple random sampling without replacement), "pps" (probabilities proportional to size sampling), "str" (stratified sampling), "clu" (cluster sampling) and "strclu" (stratified cluster sampling). Default is "srs".}
 
-\item{sdB}{(Optional) A character vector indicating the sampling design considered in frame B. Possible values are "srs" (simple random sampling), "pps" (probabilities proportional to size sampling) and "str" (stratified sampling). Default is "srs".}
+\item{sdB}{(Optional) A character vector indicating the sampling design considered in frame B. Possible values are "srs" (simple random sampling without replacement), "pps" (probabilities proportional to size sampling), "str" (stratified sampling), "clu" (cluster sampling) and "strclu" (stratified cluster sampling). Default is "srs".}
 
-\item{nhA}{(Optional) A numeric vector indicating the sample size in each stratum, if a stratified sample has been drawn in frame A.}
+\item{strA}{(Optional) A numeric vector indicating the stratum each unit in frame A belongs to, if a stratified sampling or a stratified cluster sampling has been considered in frame A.}
 
-\item{nhB}{(Optional) A numeric vector indicating the sample size in each stratum, if a stratified sample has been drawn in frame B.}
+\item{strB}{(Optional) A numeric vector indicating the stratum each unit in frame B belongs to, if a stratified sampling or a stratified cluster sampling has been considered in frame B.}
 
-\item{NhA}{(Optional) A numeric vector indicating the population size in each stratum, if a stratified sample has been drawn in frame A.}
+\item{clusA}{(Optional) A numeric vector indicating the cluster each unit in frame A belongs to, if a cluster sampling or a stratified cluster sampling has been considered in frame A.}
 
-\item{NhB}{(Optional) A numeric vector indicating the population size in each stratum, if a stratified sample has been drawn in frame B.}
+\item{clusB}{(Optional) A numeric vector indicating the cluster each unit in frame B belongs to, if a cluster sampling or a stratified cluster sampling has been considered in frame B.}
 
-\item{fcpA}{(Optional) A logic value indicating if a finite population correction factor should be considered in frame A. Default is FALSE}
+\item{NhA}{(Optional) A numeric vector indicating the population size in each stratum of frame A. This is only needed when \code{sdA = "str"} and \code{fcpA = TRUE}.}
 
-\item{fcpB}{(Optional) A logic value indicating if a finite population correction factor should be considered in frame B. Default is FALSE}
+\item{NhB}{(Optional) A numeric vector indicating the population size in each stratum of frame B. This is only needed when \code{sdB = "str"} and \code{fcpB = TRUE}.}
+
+\item{NclushA}{(Optional) A numeric vector indicating the population number of clusters in each stratum of frame A. This is only needed when \code{sdA = "strclu"} and \code{fcpA = TRUE}.}
+
+\item{NclushB}{(Optional) A numeric vector indicating the population number of clusters in each stratum of frame B. This is only needed when \code{sdB = "strclu"} and \code{fcpB = TRUE}.}
+
+\item{fcpA}{(Optional) A logic value indicating if a finite population correction factor should be considered in frame A. Default is FALSE.}
+
+\item{fcpB}{(Optional) A logic value indicating if a finite population correction factor should be considered in frame B. Default is FALSE.}
 }
 \value{
 A numeric matrix containing estimations of population total and population mean and their corresponding confidence intervals obtained through jackknife method.

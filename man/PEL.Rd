@@ -41,7 +41,14 @@ XA = NULL, XB = NULL, conf_level = NULL)
 \item{conf_level}{(Optional) A numeric value indicating the confidence level for the confidence intervals, if desired.}
 }
 \value{
-A numeric value representing dual frame calibration estimator for population total for considered values.
+\code{PEL} returns an object of class "EstimatorDF" which is a list with, at least, the following components:
+ \item{Call}{the matched call.}
+ \item{Est}{total and mean estimation for main variable(s).}
+ \item{VarEst}{variance estimation for main variable(s).}
+ If parameter \code{conf_level} is different from \code{NULL}, object includes component
+ \item{ConfInt}{total and mean estimation and confidence intervals for main variables(s).}
+ In addition, components \code{TotDomEst} and \code{MeanDomEst} are available when estimator is based on estimators of the domains. Component \code{Param} shows value of parameters involded in calculation of the estimator (if any).
+ By default, only \code{Est} component (or \code{ConfInt} component, if parameter \code{conf_level} is different from \code{NULL}) is shown. It is possible to access to all the components of the objects by using function \code{summary}.
 }
 \description{
 Produces estimates for population totals using the pseudo empirical likelihood estimator from survey data obtained
@@ -72,30 +79,26 @@ Pseudo empirical likelihood estimator for the population mean is computed as
  which can be obtained as a difference of two pseudo empirical likelihood functions.
 }
 \examples{
-data(HouseholdsA)
-dataA <- attach(HouseholdsA)
-detach(HouseholdsA)
-data(HouseholdsB)
-dataB <- attach(HouseholdsB)
-detach(HouseholdsB)
+data(DatA)
+data(DatB)
 data(PiklA)
 data(PiklB)
 
 #Let calculate pseudo empirical likelihood estimator for variable Feeding, without
 #considering any auxiliary information
-PEL(dataA$Feeding, dataB$Feeding, PiklA, PiklB, dataA$Domain, dataB$Domain)
+PEL(DatA$Feed, DatB$Feed, PiklA, PiklB, DatA$Domain, DatB$Domain)
 
 #Now, let calculate pseudo empirical estimator for variable Clothing when the frame
 #sizes and the overlap domain size are known
-PEL(dataA$Clothing, dataB$Clothing, PiklA, PiklB, dataA$Domain, dataB$Domain,
+PEL(DatA$Clo, DatB$Clo, PiklA, PiklB, DatA$Domain, DatB$Domain,
 N_A = 1735, N_B = 1191, N_ab = 601)
 
 #Finally, let calculate pseudo empirical likelihood estimator and a 90\% confidence interval
 #for population total for variable Feeding, considering Income and Metres2 as auxiliary
 #variables and with frame sizes and overlap domain size known.
-PEL(dataA$Feeding, dataB$Feeding, PiklA, PiklB, dataA$Domain, dataB$Domain,
-N_A = 1735, N_B =  1191, N_ab = 601, xsAFrameA = dataA$Income, xsBFrameA = dataB$Income,
-xsAFrameB = dataA$Metres2, xsBFrameB = dataB$Metres2, XA = 4300260, XB = 176553,
+PEL(DatA$Feed, DatB$Feed, PiklA, PiklB, DatA$Domain, DatB$Domain,
+N_A = 1735, N_B =  1191, N_ab = 601, xsAFrameA = DatA$Inc, xsBFrameA = DatB$Inc,
+xsAFrameB = DatA$M2, xsBFrameB = DatB$M2, XA = 4300260, XB = 176553,
 conf_level = 0.90)
 }
 \references{

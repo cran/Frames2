@@ -31,15 +31,15 @@
 #' CovHT(sX, sY, Ps)
 #' 
 #' ##########   Example 2   ##########
-#' data(HouseholdsA)
-#' attach(HouseholdsA)
+#' data(DatA)
+#' attach(DatA)
 #' data(PiklA)
 #' #Let calculate Horvitz - Thompson estimator for total of variable Clothing in Frame A.
-#' HT(Clothing, ProbA)
+#' HT(Clo, ProbA)
 #' #Let calculate Horvitz - Thompson estimator for total of variable Feeding in Frame A.
-#' HT(Feeding, ProbA)
+#' HT(Feed, ProbA)
 #' #And now, let compute the covariance between the previous estimators
-#' CovHT(Clothing, Feeding, PiklA)
+#' CovHT(Clo, Feed, PiklA)
 #' @export
 CovHT = function (y, x, pikl)
 {

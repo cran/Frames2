@@ -19,10 +19,10 @@
 #' Domains (U, aux, "Below")
 #' 
 #' ##########   Example 2   ##########
-#' data(HouseholdsA)
-#' attach(HouseholdsA)
+#' data(DatA)
+#' attach(DatA)
 #' #Let calculate total feeding expenses corresponding to households in domain a.
-#' sum (Domains (Feeding, Domain, "a"))
+#' sum (Domains (Feed, Domain, "a"))
 #' @export
 Domains = function (y, domains, value)
 {

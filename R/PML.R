@@ -18,33 +18,42 @@
 #' @details Pseudo Maximum Likelihood estimator of population total is given by
 #'  \deqn{\hat{Y}_{PML}(\hat{\theta}) = \frac{N_A - \hat{N}_{ab,PML}}{\hat{N}_a}\hat{Y}_a^A + \frac{N_B - \hat{N}_{ab,PML}}{\hat{N}_b}\hat{Y}_b^B + \frac{\hat{N}_{ab,PML}}{\hat{\theta}\hat{N}_{ab}^A + (1 - \hat{\theta})\hat{N}_{ab}^B}[\hat{\theta}\hat{Y}_{ab}^A + (1 - \hat{\theta})\hat{Y}_{ab}^B]}
 #'  where \eqn{\hat{\theta} \in [0, 1]} and \eqn{\hat{N}_{ab,PML}} is the smaller of the roots of the quadratic equation
-#'  \deqn{[\hat{\theta}/N_B + (1 - \hat{\theta})/N_A]x^2 - [1 + \hat{\theta}\hat{N}_{ab}^A/N_B + (1 - \hat{\theta})\hat{N}_{ab}^B/N_A]x + \hat{\theta}\hat{N}_{ab}^A + (1 - \hat{\theta})\hat{N}_{ab}^B=0.} Optimal value for \eqn{\hat{\theta}} is \eqn{\frac{\hat{N}_aN_B\hat{V}(\hat{N}_{ab}^B)}{\hat{N}_aN_B\hat{V}(\hat{N}_{ab}^B) + \hat{N}_bN_A\hat{V}(\hat{N}_{ab}^A)}} 
-#' @return A numeric matrix containing estimations of population total and population mean for considered values.
+#'  \deqn{[\hat{\theta}/N_B + (1 - \hat{\theta})/N_A]x^2 - [1 + \hat{\theta}\hat{N}_{ab}^A/N_B + (1 - \hat{\theta})\hat{N}_{ab}^B/N_A]x + \hat{\theta}\hat{N}_{ab}^A + (1 - \hat{\theta})\hat{N}_{ab}^B=0.} Optimal value for \eqn{\hat{\theta}} is \eqn{\frac{\hat{N}_aN_B\hat{V}(\hat{N}_{ab}^B)}{\hat{N}_aN_B\hat{V}(\hat{N}_{ab}^B) + \hat{N}_bN_A\hat{V}(\hat{N}_{ab}^A)}}.
+#'  Variance is estimated according to following expression
+#'  \deqn{\hat{V}(\hat{Y}_{PML}(\hat{\theta})) = \hat{V}(\sum_{i \in s_A}\tilde{z}_i^A) + \hat{V}(\sum_{i \in s_B}\tilde{z}_i^B)}
+#'  where, \eqn{\tilde{z}_i^A = y_i - \frac{\hat{Y}_a}{\hat{N}_a}} if \eqn{i \in a} and \eqn{\tilde{z}_i^A = \hat{\gamma}_{opt}(y_i - \frac{\hat{Y}_a}{\hat{N}_a}) + \hat{\lambda} \hat{\phi}} if \eqn{i \in ab} with
+#'  \deqn{\hat{\gamma}_{opt} = \frac{\hat{N}_a N_B \hat{V}(\hat{N}_{ab}^B)}{\hat{N}_a N_B \hat{V}(\hat{N}_{ab}^B) + \hat{N}_b + N_A + \hat{V}(\hat{N}_{ab}^A)}}
+#'  \deqn{\hat{\lambda} = \frac{n_A/N_A \hat{Y}_{ab}^A + n_B/N_B \hat{Y}_{ab}^B}{n_A/N_A \hat{N}_{ab}^A + n_B/N_B \hat{N}_{ab}^B} - \frac{\hat{Y}_a}{\hat{N}_a} - \frac{\hat{Y}_b}{\hat{N}_b}}
+#'  \deqn{\hat{\phi} = \frac{n_A \hat{N}_b}{n_A \hat{N}_b + n_B\hat{N}_a}}
+#'  Similarly, we define \eqn{\tilde{z}_i^B = y_i - \frac{\hat{Y}_b}{\hat{N}_b}} if \eqn{i \in b} and \eqn{\tilde{z}_i^B = (1 - \hat{\gamma}_{opt})(y_i - \frac{\hat{Y}_{ba}}{\hat{N}_{ab}}) + \hat{\lambda}(1 - \hat{\phi})} if \eqn{i \in ba}
+#' @return \code{PML} returns an object of class "EstimatorDF" which is a list with, at least, the following components:
+#'  \item{Call}{the matched call.}
+#'  \item{Est}{total and mean estimation for main variable(s).}
+#'  \item{VarEst}{variance estimation for main variable(s).}
+#'  If parameter \code{conf_level} is different from \code{NULL}, object includes component
+#'  \item{ConfInt}{total and mean estimation and confidence intervals for main variables(s).}
+#'  In addition, components \code{TotDomEst} and \code{MeanDomEst} are available when estimator is based on estimators of the domains. Component \code{Param} shows value of parameters involded in calculation of the estimator (if any).
+#'  By default, only \code{Est} component (or \code{ConfInt} component, if parameter \code{conf_level} is different from \code{NULL}) is shown. It is possible to access to all the components of the objects by using function \code{summary}.
 #' @references Skinner, C. J. and Rao, J. N. K. (1996)
 #'  \emph{Estimation in Dual Frame Surveys with Complex Designs}. Journal of the American Statistical Association, Vol. 91, 433, 349 - 356.
 #' @examples
-#' data(HouseholdsA)
-#' dataA <- attach(HouseholdsA)
-#' detach(HouseholdsA)
-#' data(HouseholdsB)
-#' dataB <- attach(HouseholdsB)
-#' detach(HouseholdsB)
+#' data(DatA)
+#' data(DatB)
 #' data(PiklA)
 #' data(PiklB)
 #'
 #' #Let calculate Pseudo Maximum Likelihood estimator for population total for variable Clothing
-#' PML(dataA$Clothing, dataB$Clothing, PiklA, PiklB, dataA$Domain, dataB$Domain, 
+#' PML(DatA$Clo, DatB$Clo, PiklA, PiklB, DatA$Domain, DatB$Domain, 
 #' N_A = 1735, N_B = 1191)
 #' 
 #' #Now, let calculate Pseudo Maximum Likelihood estimator for population total for variable
 #' #Feeding, using first order inclusion probabilities
-#'
-#' PML(dataA$Feeding, dataB$Feeding, dataA$ProbA, dataB$ProbB, dataA$Domain, dataB$Domain, 
+#' PML(DatA$Feed, DatB$Feed, DatA$ProbA, DatB$ProbB, DatA$Domain, DatB$Domain, 
 #' N_A = 1735, N_B = 1191)
 #'
 #' #Finally, let calculate Pseudo Maximum Likelihood estimator and a 90% confidence interval for 
 #' #population total for variable Leisure
-#' PML(dataA$Leisure, dataB$Leisure, PiklA, PiklB, dataA$Domain, dataB$Domain, 
+#' PML(DatA$Lei, DatB$Lei, PiklA, PiklB, DatA$Domain, DatB$Domain, 
 #' N_A = 1735, N_B = 1191, 0.90)
 #' @export
 PML = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A, N_B, conf_level = NULL)
@@ -78,31 +87,30 @@ PML = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A, N_B, conf_level
 	if (length(which(domains_B == "b")) + length(which(domains_B == "ba")) != length(domains_B))
 		stop("Domains from frame B are not correct.")
 
-	if (is.null(conf_level)) {
-		r <- 2
-		rnames <- c("Total", "Mean")
-	}
-	else { 
-		r <- 6
-		rnames <- c("Total", "Upper End", "Lower End", "Mean", "Upper End", "Lower End")
-	}
+	cl <- match.call()
 
 	n_A <- nrow(ysA)
 	n_B <- nrow(ysB)
 	c <- ncol(ysA)
-	results <- matrix(NA, nrow = r, ncol = c)
-	rownames(results) <- rnames
-	colnames(results) <- cnames
 
 	ysA <- cbind(rep(1, n_A), ysA)
 	ysB <- cbind(rep(1, n_B), ysB)
-	c1 <- ncol(ysA)
 
 	ones_a_A <- Domains (rep (1, n_A), domains_A, "a")
 	ones_ab_A <- Domains (rep (1, n_A), domains_A, "ab")
 	ones_b_B <- Domains (rep (1, n_B), domains_B, "b")
 	ones_ab_B <- Domains (rep (1, n_B), domains_B, "ba")
 	
+	est <- matrix(, 2, c, dimnames = list(c("Total", "Mean"), cnames))
+	varest <- matrix(, 2, c, dimnames = list(c("Var. Total", "Var. Mean"), cnames))
+	totdom <- matrix(, 4, c, dimnames = list(c("Total dom. a", "Total dom. ab", "Total dom. b", "Total dom. ba"), cnames))
+	meandom <- matrix(, 4, c, dimnames = list(c("Mean dom. a", "Mean dom. ab", "Mean dom. b", "Mean dom. ba"), cnames))
+	par <- 	matrix(, 1, 1, dimnames = list("gamma", ""))
+	if (is.null(conf_level))
+		interv <- NULL
+	else
+		interv <- matrix(, 6, c, dimnames = list(c("Total", "Lower Bound", "Upper Bound", "Mean", "Lower Bound", "Upper Bound"), cnames))
+
 	if (!is.null(dim(drop(pi_A))) & !is.null(dim(drop(pi_B)))) {
 
 		if (nrow(pi_A) != ncol(pi_A))
@@ -117,7 +125,25 @@ PML = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A, N_B, conf_level
 		Vhat_Nhat_ab_B <- VarHT (ones_ab_B, pi_B)
 		Vhat_Nhat_ab_A <- VarHT (ones_ab_A, pi_A)
 
-		for (k in 1:c1) {
+		gamma_opt <- (Nhat_a_A * N_B * Vhat_Nhat_ab_B) / (Nhat_a_A * N_B * Vhat_Nhat_ab_B + Nhat_b_B * N_A * Vhat_Nhat_ab_A)
+		if (is.nan(gamma_opt) | gamma_opt == 0 | gamma_opt == 1){
+		
+			SRSPikls_A <- matrix((n_A * (n_A - 1)) / (N_A * (N_A - 1)), n_A, n_A)
+			diag(SRSPikls_A) <- rep(n_A / N_A, n_A)
+			SRSPikls_B <- matrix((n_B * (n_B - 1)) / (N_B * (N_B - 1)), n_B, n_B)
+			diag(SRSPikls_B) <- rep(n_B / N_B, n_B)
+	
+			d_A <- Vhat_Nhat_ab_A / VarHT (ones_ab_A, SRSPikls_A) 
+			d_B <- Vhat_Nhat_ab_B / VarHT (ones_ab_B, SRSPikls_B)
+
+			eff_n_A <- n_A / d_A
+			eff_n_B <- n_B / d_B
+		
+			gamma_opt <- eff_n_A * N_B / (eff_n_A * N_B + eff_n_B * N_A)
+		}
+		par[1,1] <- gamma_opt
+
+		for (k in 1:(c+1)) {
 	
 			data_a_A <- Domains (ysA[,k], domains_A, "a")
 			data_ab_A <- Domains (ysA[,k], domains_A, "ab")
@@ -129,59 +155,51 @@ PML = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A, N_B, conf_level
 			Yhat_b_B <- HT (data_b_B, diag(pi_B))
 			Yhat_ab_B <- HT (data_ab_B, diag(pi_B))
 
-			theta_opt <- (Nhat_a_A * N_B * Vhat_Nhat_ab_B) / (Nhat_a_A * N_B * Vhat_Nhat_ab_B + Nhat_b_B * N_A * Vhat_Nhat_ab_A)
-			if (is.nan(theta_opt) | theta_opt == 0 | theta_opt == 1){ #Alg?n dominio es vac?o (o los dos). Entonces calculamos los efectos del dise?o para obtener los tama?os muestrales efectivos
-		
-				SRSPikls_A <- matrix((n_A * (n_A - 1)) / (N_A * (N_A - 1)), n_A, n_A)
-				diag(SRSPikls_A) <- rep(n_A / N_A, n_A)
-				SRSPikls_B <- matrix((n_B * (n_B - 1)) / (N_B * (N_B - 1)), n_B, n_B)
-				diag(SRSPikls_B) <- rep(n_B / N_B, n_B)
-	
-				d_A <- Vhat_Nhat_ab_A / VarHT (ones_ab_A, SRSPikls_A) 
-				d_B <- Vhat_Nhat_ab_B / VarHT (ones_ab_B, SRSPikls_B)
-
-				eff_n_A <- n_A / d_A
-				eff_n_B <- n_B / d_B
-		
-				theta_opt <- eff_n_A * N_B / (eff_n_A * N_B + eff_n_B * N_A)
-			}
-			term_a <- theta_opt / N_B + (1 - theta_opt) / N_A
-			term_b <- -(1 + theta_opt * Nhat_ab_A / N_B + (1 - theta_opt) * Nhat_ab_B / N_A)
-			term_c <- theta_opt * Nhat_ab_A + (1 - theta_opt) * Nhat_ab_B
-			Nhat_ab_PML_theta_opt <- (- term_b - sqrt(term_b * term_b - 4 * term_a * term_c)) / (2 * term_a)
+			term_a <- gamma_opt / N_B + (1 - gamma_opt) / N_A
+			term_b <- -(1 + gamma_opt * Nhat_ab_A / N_B + (1 - gamma_opt) * Nhat_ab_B / N_A)
+			term_c <- gamma_opt * Nhat_ab_A + (1 - gamma_opt) * Nhat_ab_B
+			Nhat_ab_PML_gamma_opt <- (- term_b - sqrt(term_b * term_b - 4 * term_a * term_c)) / (2 * term_a)
 
 			muhat_ab <- (n_A / N_A * Yhat_ab_A + n_B / N_B * Yhat_ab_B) / (n_A / N_A * Nhat_ab_A + n_B / N_B * Nhat_ab_B)
 			muhat_a <- Yhat_a_A / Nhat_a_A
 			muhat_b <- Yhat_b_B / Nhat_b_B
 
-			if (k == 1)
-				size_estimation <- sum((N_A - Nhat_ab_PML_theta_opt) * muhat_a, (N_B - Nhat_ab_PML_theta_opt) * muhat_b, Nhat_ab_PML_theta_opt * muhat_ab, rm.na = TRUE)
+			if (k == 1){
+				domain_size_estimation <- c(Yhat_a_A, Yhat_ab_A, Yhat_b_B, Yhat_ab_B)
+				size_estimation <- sum((N_A - Nhat_ab_PML_gamma_opt) * muhat_a, (N_B - Nhat_ab_PML_gamma_opt) * muhat_b, Nhat_ab_PML_gamma_opt * muhat_ab, rm.na = TRUE)
+			}
 			else
-				total_estimation <- sum((N_A - Nhat_ab_PML_theta_opt) * muhat_a, (N_B - Nhat_ab_PML_theta_opt) * muhat_b, Nhat_ab_PML_theta_opt * muhat_ab, rm.na = TRUE) 
+				total_estimation <- sum((N_A - Nhat_ab_PML_gamma_opt) * muhat_a, (N_B - Nhat_ab_PML_gamma_opt) * muhat_b, Nhat_ab_PML_gamma_opt * muhat_ab, rm.na = TRUE) 
 		
 			if (k > 1) {
+
+				totdom[,k-1] <- c(Yhat_a_A, Yhat_ab_A, Yhat_b_B, Yhat_ab_B)
+				meandom[,k-1] <- totdom[,k-1]/domain_size_estimation
+
 				mean_estimation <- total_estimation / size_estimation
-				results[,k-1] <- c(total_estimation, mean_estimation)
+				est[,k-1] <- c(total_estimation, mean_estimation)
+
+				lambdahat <- sum(muhat_ab, - muhat_a, - muhat_b, na.rm = TRUE)
+				phihat <- n_A * Nhat_b_B / (n_A * Nhat_b_B + n_B * Nhat_a_A)
+				if (is.nan(phihat))
+					phihat <- 0
+
+				zA1 <- cbind((ysA[,k] - muhat_a) * ones_a_A, (gamma_opt * (ysA[,k] - muhat_ab) + lambdahat * phihat) * ones_ab_A)
+				zB1 <- cbind((ysB[,k] - muhat_b) * ones_b_B, ((1 - gamma_opt) * (ysB[,k] - muhat_ab) + lambdahat * (1 - phihat)) * ones_ab_B)
+				zA <- rowSums(zA1, na.rm = TRUE)
+				zB <- rowSums(zB1, na.rm = TRUE)
+
+				Vhat_Yhat_PML <- VarHT (zA, pi_A) + VarHT (zB, pi_B)
+				Vhat_Ymeanhat_PML <- 1/size_estimation^2 * Vhat_Yhat_PML
+				varest[,k-1] <- c(Vhat_Yhat_PML, Vhat_Ymeanhat_PML)
 
 				if (!is.null(conf_level)) {
 			
-					lambdahat <- sum(muhat_ab, - muhat_a, - muhat_b, na.rm = TRUE)
-					phihat <- n_A * Nhat_b_B / (n_A * Nhat_b_B + n_B * Nhat_a_A)
-					if (is.nan(phihat))
-						phihat <- 0
-
-					zA1 <- cbind((ysA[,k] - muhat_a) * ones_a_A, (theta_opt * (ysA[,k] - muhat_ab) + lambdahat * phihat) * ones_ab_A)
-					zB1 <- cbind((ysB[,k] - muhat_b) * ones_b_B, ((1 - theta_opt) * (ysB[,k] - muhat_ab) + lambdahat * (1 - phihat)) * ones_ab_B)
-					zA <- rowSums(zA1, na.rm = TRUE)
-					zB <- rowSums(zB1, na.rm = TRUE)
-
-					Vhat_Yhat_PML <- VarHT (zA, pi_A) + VarHT (zB, pi_B)
 					total_upper <- total_estimation + qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Yhat_PML)
 					total_lower <- total_estimation - qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Yhat_PML)
-					mean_upper <- mean_estimation + qnorm(1 - (1 - conf_level) / 2) * sqrt(1/size_estimation^2 * Vhat_Yhat_PML)
-					mean_lower <- mean_estimation - qnorm(1 - (1 - conf_level) / 2) * sqrt(1/size_estimation^2 * Vhat_Yhat_PML)
-					results[,k-1] <- c(total_estimation, total_upper, total_lower, mean_estimation, mean_upper, mean_lower)
-				
+					mean_upper <- mean_estimation + qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Ymeanhat_PML)
+					mean_lower <- mean_estimation - qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Ymeanhat_PML)
+					interv[,k-1] <- c(total_estimation, total_lower, total_upper, mean_estimation, mean_lower, mean_upper)
 				}
 			}
 		}
@@ -197,7 +215,23 @@ PML = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A, N_B, conf_level
 			Vhat_Nhat_ab_B <- varest (ones_ab_B, pik = pi_B)
 			Vhat_Nhat_ab_A <- varest (ones_ab_A, pik = pi_A)
 
-			for (k in 1:c1) {
+			gamma_opt <- (Nhat_a_A * N_B * Vhat_Nhat_ab_B) / (Nhat_a_A * N_B * Vhat_Nhat_ab_B + Nhat_b_B * N_A * Vhat_Nhat_ab_A)
+			if (Nhat_a_A == 0 | Nhat_b_B == 0){
+		
+				SRSPiks_A <- rep(n_A / N_A, n_A)
+				SRSPiks_B <- rep(n_B / N_B, n_B)
+	
+				d_A <- Vhat_Nhat_ab_A / varest (ones_ab_A, pik = SRSPiks_A) 
+				d_B <- Vhat_Nhat_ab_B / varest (ones_ab_B, pik = SRSPiks_B)
+
+				eff_n_A <- n_A / d_A
+				eff_n_B <- n_B / d_B
+		
+				gamma_opt <- eff_n_A * N_B / (eff_n_A * N_B + eff_n_B * N_A)
+			}
+			par[1,1] <- gamma_opt
+
+			for (k in 1:(c+1)) {
 	
 				data_a_A <- Domains (ysA[,k], domains_A, "a")
 				data_ab_A <- Domains (ysA[,k], domains_A, "ab")
@@ -209,62 +243,51 @@ PML = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A, N_B, conf_level
 				Yhat_b_B <- HT (data_b_B, pi_B)
 				Yhat_ab_B <- HT (data_ab_B, pi_B)
 
-				theta_opt <- (Nhat_a_A * N_B * Vhat_Nhat_ab_B) / (Nhat_a_A * N_B * Vhat_Nhat_ab_B + Nhat_b_B * N_A * Vhat_Nhat_ab_A)
-				if (Nhat_a_A == 0 | Nhat_b_B == 0){
-		
-					SRSPiks_A <- rep(n_A / N_A, n_A)
-					SRSPiks_B <- rep(n_B / N_B, n_B)
-	
-					d_A <- Vhat_Nhat_ab_A / varest (ones_ab_A, pik = SRSPiks_A) 
-					d_B <- Vhat_Nhat_ab_B / varest (ones_ab_B, pik = SRSPiks_B)
-
-					eff_n_A <- n_A / d_A
-					eff_n_B <- n_B / d_B
-		
-					theta_opt <- eff_n_A * N_B / (eff_n_A * N_B + eff_n_B * N_A)
-				}
-				term_a <- theta_opt / N_B + (1 - theta_opt) / N_A
-				term_b <- -(1 + theta_opt * Nhat_ab_A / N_B + (1 - theta_opt) * Nhat_ab_B / N_A)
-				term_c <- theta_opt * Nhat_ab_A + (1 - theta_opt) * Nhat_ab_B
-				Nhat_ab_PML_theta_opt <- (- term_b - sqrt(term_b * term_b - 4 * term_a * term_c)) / (2 * term_a)
-				
+				term_a <- gamma_opt / N_B + (1 - gamma_opt) / N_A
+				term_b <- -(1 + gamma_opt * Nhat_ab_A / N_B + (1 - gamma_opt) * Nhat_ab_B / N_A)
+				term_c <- gamma_opt * Nhat_ab_A + (1 - gamma_opt) * Nhat_ab_B
+				Nhat_ab_PML_gamma_opt <- (- term_b - sqrt(term_b * term_b - 4 * term_a * term_c)) / (2 * term_a)
 
 				muhat_ab <- (n_A / N_A * Yhat_ab_A + n_B / N_B * Yhat_ab_B) / (n_A / N_A * Nhat_ab_A + n_B / N_B * Nhat_ab_B)
 				muhat_a <- Yhat_a_A / Nhat_a_A
 				muhat_b <- Yhat_b_B / Nhat_b_B
 
-				if (k == 1)
-					size_estimation <- sum((N_A - Nhat_ab_PML_theta_opt) * muhat_a, (N_B - Nhat_ab_PML_theta_opt) * muhat_b, Nhat_ab_PML_theta_opt * muhat_ab, rm.na = TRUE)
+				if (k == 1){
+					domain_size_estimation <- c(Yhat_a_A, Yhat_ab_A, Yhat_b_B, Yhat_ab_B)
+					size_estimation <- sum((N_A - Nhat_ab_PML_gamma_opt) * muhat_a, (N_B - Nhat_ab_PML_gamma_opt) * muhat_b, Nhat_ab_PML_gamma_opt * muhat_ab, rm.na = TRUE)
+				}
 				else
-					total_estimation <- sum((N_A - Nhat_ab_PML_theta_opt) * muhat_a, (N_B - Nhat_ab_PML_theta_opt) * muhat_b, Nhat_ab_PML_theta_opt * muhat_ab, rm.na = TRUE) 
+					total_estimation <- sum((N_A - Nhat_ab_PML_gamma_opt) * muhat_a, (N_B - Nhat_ab_PML_gamma_opt) * muhat_b, Nhat_ab_PML_gamma_opt * muhat_ab, rm.na = TRUE) 
 		
 				if (k > 1) {
+
+					totdom[,k-1] <- c(Yhat_a_A, Yhat_ab_A, Yhat_b_B, Yhat_ab_B)
+					meandom[,k-1] <- totdom[,k-1]/domain_size_estimation
+
 					mean_estimation <- total_estimation / size_estimation
-					results[,k-1] <- c(total_estimation, mean_estimation)
+					est[,k-1] <- c(total_estimation, mean_estimation)
+
+					lambdahat <- sum(muhat_ab, - muhat_a, - muhat_b, na.rm = TRUE)
+					phihat <- n_A * Nhat_b_B / (n_A * Nhat_b_B + n_B * Nhat_a_A)
+					if (is.nan(phihat))
+						phihat <- 0
+						
+					zA1 <- cbind((ysA[,k] - muhat_a) * ones_a_A, (gamma_opt * (ysA[,k] - muhat_ab) + lambdahat * phihat) * ones_ab_A)
+					zB1 <- cbind((ysB[,k] - muhat_b) * ones_b_B, ((1 - gamma_opt) * (ysB[,k] - muhat_ab) + lambdahat * (1 - phihat)) * ones_ab_B)
+					zA <- rowSums(zA1, na.rm = TRUE)
+					zB <- rowSums(zB1, na.rm = TRUE)
+
+					Vhat_Yhat_PML <- varest (zA, pik = pi_A) + varest (zB, pik = pi_B)
+					Vhat_Ymeanhat_PML <- 1/size_estimation^2 * Vhat_Yhat_PML
+					varest[,k-1] <- c(Vhat_Yhat_PML, Vhat_Ymeanhat_PML)
 
 					if (!is.null(conf_level)) {
 			
-						lambdahat <- sum(muhat_ab, - muhat_a, - muhat_b, na.rm = TRUE)
-						phihat <- n_A * Nhat_b_B / (n_A * Nhat_b_B + n_B * Nhat_a_A)
-						if (is.nan(phihat))
-							phihat <- 0
-						
-						delta_a_A <- Domains (rep (1, n_A), domains_A, "a")
-						delta_ab_A <- Domains (rep (1, n_A), domains_A, "ab")
-						delta_b_B <- Domains (rep (1, n_B), domains_B, "b")
-						delta_ab_B <- Domains (rep (1, n_B), domains_B, "ba")
-						
-						zA1 <- cbind((ysA[,k] - muhat_a) * delta_a_A, (theta_opt * (ysA[,k] - muhat_ab) + lambdahat * phihat) * delta_ab_A)
-						zB1 <- cbind((ysB[,k] - muhat_b) * delta_b_B, ((1 - theta_opt) * (ysB[,k] - muhat_ab) + lambdahat * (1 - phihat)) * delta_ab_B)
-						zA <- rowSums(zA1, na.rm = TRUE)
-						zB <- rowSums(zB1, na.rm = TRUE)
-
-						Vhat_Yhat_PML <- varest (zA, pik = pi_A) + varest (zB, pik = pi_B)
 						total_upper <- total_estimation + qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Yhat_PML)
 						total_lower <- total_estimation - qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Yhat_PML)
-						mean_upper <- mean_estimation + qnorm(1 - (1 - conf_level) / 2) * sqrt(1/size_estimation^2 * Vhat_Yhat_PML)
-						mean_lower <- mean_estimation - qnorm(1 - (1 - conf_level) / 2) * sqrt(1/size_estimation^2 * Vhat_Yhat_PML)
-						results[,k-1] <- c(total_estimation, total_upper, total_lower, mean_estimation, mean_upper, mean_lower)
+						mean_upper <- mean_estimation + qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Ymeanhat_PML)
+						mean_lower <- mean_estimation - qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Ymeanhat_PML)
+						interv[,k-1] <- c(total_estimation, total_lower, total_upper, mean_estimation, mean_lower, mean_upper)
 				
 					}
 				}
@@ -273,5 +296,8 @@ PML = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A, N_B, conf_level
 		else
 			stop("Invalid option: Probability vector in one frame and probability matrix in the other frame. Type of probabilities structures must match.")
 	}	
-	return (results)
+   	results = list(Call = cl, Est = est, VarEst = varest, TotDomEst = totdom, MeanDomEst = meandom, Param = par, ConfInt = interv)
+   	class(results) = "EstimatorDF"
+   	attr(results, "attributesDF") = conf_level
+   	return(results)
 }

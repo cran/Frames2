@@ -1,8 +1,8 @@
 #' @name BKA
 #' @aliases BKA
-#' @title Bankier-Kalton-Anderson single frame estimator
+#' @title Bankier-Kalton-Anderson estimator
 #' 
-#' @description Produces estimates for population total and mean using the Bankier-Kalton-Anderson single frame estimator from survey data obtained
+#' @description Produces estimates for population total and mean using the Bankier-Kalton-Anderson estimator from survey data obtained
 #'  from a dual frame sampling design. Confidence intervals are also computed, if required.
 #' 
 #' @usage BKA(ysA, ysB, pi_A, pi_B, pik_ab_B, pik_ba_A, domains_A, domains_B, 
@@ -18,7 +18,7 @@
 #' @param domains_A A character vector of size \eqn{n_A} indicating the domain each unit from \eqn{s_A} belongs to. Possible values are "a" and "ab".
 #' @param domains_B A character vector of size \eqn{n_B} indicating the domain each unit from \eqn{s_B} belongs to. Possible values are "b" and "ba".
 #' @param conf_level (Optional) A numeric value indicating the confidence level for the confidence intervals, if desired.
-#' @details Single frame estimator of population total is given by
+#' @details BKA estimator of population total is given by
 #'  \deqn{\hat{Y}_{BKA} = \sum_{i \in s_A}\tilde{d}_i^Ay_i + \sum_{i \in s_B}\tilde{d}_i^By_i}
 #'  where
 #'  \eqn{\tilde{d}_i^A =\left\{\begin{array}{lcc}
@@ -35,10 +35,20 @@
 #'  being \eqn{d_i^A} and \eqn{d_i^B} the design weights, obtained as the inverse of the first order inclusion probabilities, that is, \eqn{d_i^A = 1/\pi_i^A} and \eqn{d_i^B = 1/\pi_i^B}.
 #'  
 #'  To estimate variance of this estimator, one uses following approach proposed by Rao and Skinner (1996)
-#'  \deqn{\hat{V}(\hat{Y}_{BKA}) = \hat{V}(\tilde{z}_i^A) + \hat{V}(\tilde{z}_i^B)}
+#'  \deqn{\hat{V}(\hat{Y}_{BKA}) = \hat{V}(\sum_{i \in s_A}\tilde{z}_i^A) + \hat{V}(\sum_{i \in s_B}\tilde{z}_i^B)}
 #'  with \eqn{\tilde{z}_i^A = \delta_i(a)y_i + (1 - \delta_i(a))y_i\pi_i^A/(\pi_i^A + \pi_i^B)} and \eqn{\tilde{z}_i^B = \delta_i(b)y_i + (1 - \delta_i(b))y_i\pi_i^B/(\pi_i^A + \pi_i^B)},
 #'  being \eqn{\delta_i(a)} and \eqn{\delta_i(b)} the indicator variables for domain \eqn{a} and domain \eqn{b}, respectively.
-#' @return A numeric matrix containing Bankier-Kalton-Anderson single frame estimations of population total and population mean for considered values.
+#'  If both first and second order probabilities are known, variances and covariances involved in calculation of \eqn{\hat{\beta}} and \eqn{\hat{V}(\hat{Y}_{FB})} are estimated using functions \code{VarHT} and \code{CovHT}, respectively. If
+#'  only first order probabilities are known, variances are estimated using Deville's method and covariances are estimated using following expression
+#'  \deqn{\widehat{Cov}(\hat{X}, \hat{Y}) = \frac{\hat{V}(X + Y) - \hat{V}(X) - \hat{V}(Y)}{2}}
+#' @return \code{BKA} returns an object of class "EstimatorDF" which is a list with, at least, the following components:
+#'  \item{Call}{the matched call.}
+#'  \item{Est}{total and mean estimation for main variable(s).}
+#'  \item{VarEst}{variance estimation for main variable(s).}
+#'  If parameter \code{conf_level} is different from \code{NULL}, object includes component
+#'  \item{ConfInt}{total and mean estimation and confidence intervals for main variables(s).}
+#'  In addition, components \code{TotDomEst} and \code{MeanDomEst} are available when estimator is based on estimators of the domains. Component \code{Param} shows value of parameters involded in calculation of the estimator (if any).
+#'  By default, only \code{Est} component (or \code{ConfInt} component, if parameter \code{conf_level} is different from \code{NULL}) is shown. It is possible to access to all the components of the objects by using function \code{summary}.
 #' @references Bankier, M. D. (1986)
 #'  \emph{Estimators Based on Several Stratified Samples With Applications to Multiple Frame Surveys}. 
 #'  Journal of the American Statistical Association, Vol. 81, 1074 - 1079.
@@ -53,23 +63,19 @@
 #' Journal of the American Statistical Association, Vol. 91, 433, 349 - 356.
 #' @seealso \code{\link{JackBKA}}
 #' @examples
-#' data(HouseholdsA)
-#' dataA <- attach(HouseholdsA)
-#' detach(HouseholdsA)
-#' data(HouseholdsB)
-#' dataB <- attach(HouseholdsB)
-#' detach(HouseholdsB)
+#' data(DatA)
+#' data(DatB)
 #' data(PiklA)
 #' data(PiklB)
 #' 
-#' #Let calculate single frame estimator for population total for variable Leisure
-#' BKA(dataA$Leisure, dataB$Leisure, PiklA, PiklB, dataA$ProbB, dataB$ProbA, 
-#' dataA$Domain, dataB$Domain)
+#' #Let calculate BKA estimator for population total for variable Leisure
+#' BKA(DatA$Lei, DatB$Lei, PiklA, PiklB, DatA$ProbB, DatB$ProbA, 
+#' DatA$Domain, DatB$Domain)
 #' 
-#' #Now, let calculate single frame estimator and a 90% confidence interval for population 
+#' #Now, let calculate BKA estimator and a 90% confidence interval for population 
 #' #total for variable Feeding considering only first order inclusion probabilities
-#' BKA(dataA$Feeding, dataB$Feeding, dataA$ProbA, dataB$ProbB, dataA$ProbB, 
-#' dataB$ProbA, dataA$Domain, dataB$Domain, 0.90)
+#' BKA(DatA$Feed, DatB$Feed, DatA$ProbA, DatB$ProbB, DatA$ProbB, 
+#' DatB$ProbA, DatA$Domain, DatB$Domain, 0.90)
 #' @export
 BKA = function (ysA, ysB, pi_A, pi_B, pik_ab_B, pik_ba_A, domains_A, domains_B, conf_level = NULL)
 {
@@ -91,13 +97,9 @@ BKA = function (ysA, ysB, pi_A, pi_B, pik_ab_B, pik_ba_A, domains_A, domains_B, 
 		stop("There are missing values in domains from frame A.")
 	if (any(is.na(domains_B)))
 		stop("There are missing values in domains from frame B.")
-	if (any(is.na(pik_ab_B)))
-		stop("There are missing values in pik for frame B for units in domain ab from frame A.")
-	if (any(is.na(pik_ba_A)))
-		stop("There are missing values in pik for frame A for units in domain ba from frame B.")
-	if (any(pik_ab_B[domains_A == "ab"] == 0))
+	if (any(is.na(pik_ab_B[domains_A == "ab"])))
 		stop("Some values in pik_ab_B are 0 when they should not.")
-	if (any(pik_ba_A[domains_B == "ba"] == 0))
+	if (any(is.na(pik_ba_A[domains_B == "ba"])))
 		stop("Some values in pik_ba_A are 0 when they should not.")
 	if (nrow(ysA) != nrow(pi_A) | nrow(ysA) != length(domains_A) | length(domains_A) != nrow(pi_A) | nrow(ysA) != length(pik_ab_B))
 		stop("Arguments from frame A have different sizes.")
@@ -110,27 +112,31 @@ BKA = function (ysA, ysB, pi_A, pi_B, pik_ab_B, pik_ba_A, domains_A, domains_B, 
 	if (length(which(domains_B == "b")) + length(which(domains_B == "ba")) != length(domains_B))
 		stop("Domains from frame B are not correct.")
 
-	if (is.null(conf_level)) {
-		r = 2
-		rnames <- c("Total", "Mean")
-	}
-	else {
-		r = 6
-		rnames <- c("Total", "Upper End", "Lower End", "Mean", "Upper End", "Lower End")
-	}
+	cl <- match.call()
 
 	n_A <- nrow(ysA)
  	n_B <- nrow(ysB)
 	c <- ncol(ysA)
-	results <- matrix(NA, nrow = r, ncol = c)
-	rownames(results) <- rnames
-	colnames(results) <- cnames
 
 	ysA <- cbind(rep(1, n_A), ysA)
 	ysB <- cbind(rep(1, n_B), ysB)
-	c1 <- ncol(ysA)
 
-	for (k in 1:c1) {
+	delta_a_A <- Domains (rep (1, n_A), domains_A, "a")
+	delta_ab_A <- Domains (rep (1, n_A), domains_A, "ab")
+	delta_b_B <- Domains (rep (1, n_B), domains_B, "b")
+	delta_ab_B <- Domains (rep (1, n_B), domains_B, "ba")
+
+	est <- matrix(, 2, c, dimnames = list(c("Total", "Mean"), cnames))
+	varest <- matrix(, 2, c, dimnames = list(c("Var. Total", "Var. Mean"), cnames))
+	totdom <- NULL
+	meandom <- NULL
+	par <- NULL
+	if (is.null(conf_level))
+		interv <- NULL
+	else
+		interv <- matrix(, 6, c, dimnames = list(c("Total", "Lower Bound", "Upper Bound", "Mean", "Lower Bound", "Upper Bound"), cnames))
+
+	for (k in 1:(c+1)) {
 
 		if (!is.null(dim(drop(pi_A))) & !is.null(dim(drop(pi_B)))) {
 		
@@ -142,31 +148,44 @@ BKA = function (ysA, ysB, pi_A, pi_B, pik_ab_B, pik_ba_A, domains_A, domains_B, 
 			w_tilde_iS_A <- (1 / diag(pi_A)) * (domains_A == "a") + (1 / (diag(pi_A) + pik_ab_B)) * (domains_A == "ab")
 			w_tilde_iS_B <- (1 / diag(pi_B)) * (domains_B == "b") + (1 / (diag(pi_B) + pik_ba_A)) * (domains_B == "ba")
 
-			if (k == 1)
+			if (k == 1){
+				Nhat_a_A <- sum(ysA[,k] * w_tilde_iS_A * delta_a_A)
+				Nhat_ab_A <- sum(ysA[,k] * w_tilde_iS_A * delta_ab_A)
+				Nhat_b_B <- sum(ysB[,k] * w_tilde_iS_B * delta_b_B)
+				Nhat_ab_B <- sum(ysB[,k] * w_tilde_iS_B * delta_ab_B)
+				domain_size_estimation <- c(Nhat_a_A, Nhat_ab_A, Nhat_b_B, Nhat_ab_B)
 				size_estimation <- sum(ysA[,k] * w_tilde_iS_A) + sum(ysB[,k] * w_tilde_iS_B)
-			else
+			}
+			else{
+				Yhat_a_A <- sum(ysA[,k] * w_tilde_iS_A * delta_a_A)
+				Yhat_ab_A <- sum(ysA[,k] * w_tilde_iS_A * delta_ab_A)
+				Yhat_b_B <- sum(ysB[,k] * w_tilde_iS_B * delta_b_B)
+				Yhat_ab_B <- sum(ysB[,k] * w_tilde_iS_B * delta_ab_B)
 				total_estimation <- sum(ysA[,k] * w_tilde_iS_A) + sum(ysB[,k] * w_tilde_iS_B)
+			}
 
 			if (k > 1) {
+
 				mean_estimation <- total_estimation / size_estimation 
-				results[,k-1] <- c(total_estimation, mean_estimation)
-	
+				est[,k-1] <- c(total_estimation, mean_estimation)
+
+				p <- diag(pi_A) / (diag(pi_A) + pik_ab_B)
+				zA <- delta_a_A * ysA[,k] + (1 - delta_a_A) * ysA[,k] * p			
+
+				q <- diag(pi_B) / (diag(pi_B) + pik_ba_A)
+				zB <- delta_b_B * ysB[,k] + (1 - delta_b_B) * ysB[,k] * q
+
+				Vhat_Yhat_SF <- VarHT (zA, pi_A) + VarHT (zB, pi_B)
+				Vhat_Ymeanhat_SF <- 1/size_estimation^2 * Vhat_Yhat_SF
+				varest[,k-1] <- c(Vhat_Yhat_SF, Vhat_Ymeanhat_SF)
+
 				if (!is.null(conf_level)) {
 
-					delta_a <- Domains(rep(1, n_A), domains_A, "a")
-					p <- diag(pi_A) / (diag(pi_A) + pik_ab_B)
-					zA <- delta_a * ysA[,k] + (1 - delta_a) * ysA[,k] * p			
-
-					delta_b <- Domains(rep(1, n_B), domains_B, "b")
-					q <- diag(pi_B) / (diag(pi_B) + pik_ba_A)
-					zB <- delta_b * ysB[,k] + (1 - delta_b) * ysB[,k] * q
-
-					Vhat_Yhat_SF <- VarHT (zA, pi_A) + VarHT (zB, pi_B)
 					total_upper <- total_estimation + qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Yhat_SF)
 					total_lower <- total_estimation - qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Yhat_SF)
-					mean_upper <- mean_estimation + qnorm(1 - (1 - conf_level) / 2) * sqrt(1/size_estimation^2 * Vhat_Yhat_SF)
-					mean_lower <- mean_estimation - qnorm(1 - (1 - conf_level) / 2) * sqrt(1/size_estimation^2 * Vhat_Yhat_SF)
-					results[,k-1] <- c(total_estimation, total_upper, total_lower, mean_estimation, mean_upper, mean_lower)			
+					mean_upper <- mean_estimation + qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Ymeanhat_SF)
+					mean_lower <- mean_estimation - qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Ymeanhat_SF)
+					interv[,k-1] <- c(total_estimation, total_lower, total_upper, mean_estimation, mean_lower, mean_upper)			
 				}
 			}
 		}
@@ -177,31 +196,44 @@ BKA = function (ysA, ysB, pi_A, pi_B, pik_ab_B, pik_ba_A, domains_A, domains_B, 
 				w_tilde_iS_A <- (1 / pi_A) * (domains_A == "a") + (1 / (pi_A + pik_ab_B)) * (domains_A == "ab")
 				w_tilde_iS_B <- (1 / pi_B) * (domains_B == "b") + (1 / (pi_B + pik_ba_A)) * (domains_B == "ba")
 
-				if (k == 1)
+				if (k == 1){
+					Nhat_a_A <- sum(ysA[,k] * w_tilde_iS_A * delta_a_A)
+					Nhat_ab_A <- sum(ysA[,k] * w_tilde_iS_A * delta_ab_A)
+					Nhat_b_B <- sum(ysB[,k] * w_tilde_iS_B * delta_b_B)
+					Nhat_ab_B <- sum(ysB[,k] * w_tilde_iS_B * delta_ab_B)
+					domain_size_estimation <- c(Nhat_a_A, Nhat_ab_A, Nhat_b_B, Nhat_ab_B)
 					size_estimation <- sum(ysA[,k] * w_tilde_iS_A) + sum(ysB[,k] * w_tilde_iS_B)
-				else
+				}
+				else{
+					Yhat_a_A <- sum(ysA[,k] * w_tilde_iS_A * delta_a_A)
+					Yhat_ab_A <- sum(ysA[,k] * w_tilde_iS_A * delta_ab_A)
+					Yhat_b_B <- sum(ysB[,k] * w_tilde_iS_B * delta_b_B)
+					Yhat_ab_B <- sum(ysB[,k] * w_tilde_iS_B * delta_ab_B)
 					total_estimation <- sum(ysA[,k] * w_tilde_iS_A) + sum(ysB[,k] * w_tilde_iS_B)
+				}
 
 				if (k > 1) {
+
 					mean_estimation <- total_estimation / size_estimation
-					results[,k-1] <- c(total_estimation, mean_estimation)
+					est[,k-1] <- c(total_estimation, mean_estimation)
+					
+					p <- pi_A / (pi_A + pik_ab_B)
+					zA <- delta_a_A * ysA[,k] + (1 - delta_a_A) * ysA[,k] * p			
+
+					q <- pi_B / (pi_B + pik_ba_A)
+					zB <- delta_b_B * ysB[,k] + (1 - delta_b_B) * ysB[,k] * q
+
+					Vhat_Yhat_SF <- varest (zA, pik = pi_A) + varest (zB, pik = pi_B)
+					Vhat_Ymeanhat_SF <- 1/size_estimation^2 * Vhat_Yhat_SF	
+					varest[,k-1] <- c(Vhat_Yhat_SF, Vhat_Ymeanhat_SF)
 
 					if (!is.null(conf_level)) {
-
-						delta_a <- Domains(rep(1, n_A), domains_A, "a")
-						p <- pi_A / (pi_A + pik_ab_B)
-						zA <- delta_a * ysA[,k] + (1 - delta_a) * ysA[,k] * p			
-
-						delta_b <- Domains(rep(1, n_B), domains_B, "b")
-						q <- pi_B / (pi_B + pik_ba_A)
-						zB <- delta_b * ysB[,k] + (1 - delta_b) * ysB[,k] * q
-
-						Vhat_Yhat_SF <- varest (zA, pik = pi_A) + varest (zB, pik = pi_B)
+						
 						total_upper <- total_estimation + qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Yhat_SF)
 						total_lower <- total_estimation - qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Yhat_SF)
-						mean_upper <- mean_estimation + qnorm(1 - (1 - conf_level) / 2) * sqrt(1/size_estimation^2 * Vhat_Yhat_SF)
-						mean_lower <- mean_estimation - qnorm(1 - (1 - conf_level) / 2) * sqrt(1/size_estimation^2 * Vhat_Yhat_SF)
-						results[,k-1] <- c(total_estimation, total_upper, total_lower, mean_estimation, mean_upper, mean_lower)			
+						mean_upper <- mean_estimation + qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Ymeanhat_SF)
+						mean_lower <- mean_estimation - qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Ymeanhat_SF)
+						interv[,k-1] <- c(total_estimation, total_upper, total_lower, mean_estimation, mean_upper, mean_lower)			
 					}
 				}
 			}
@@ -210,5 +242,8 @@ BKA = function (ysA, ysB, pi_A, pi_B, pik_ab_B, pik_ba_A, domains_A, domains_B, 
 				stop("Invalid option: Probability vector in one frame and probability matrix in the other frame. Type of both structures must match.")
 		}
 	}
-	return (results)			
+   	results = list(Call = cl, Est = est, VarEst = varest, TotDomEst = totdom, MeanDomEst = meandom, Param = par, ConfInt = interv)
+   	class(results) = "EstimatorDF"
+   	attr(results, "attributesDF") = conf_level
+   	return(results)			
 }

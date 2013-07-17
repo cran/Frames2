@@ -43,27 +43,30 @@
 #'  If both first and second order probabilities are known, variances and covariances involved in calculation of \eqn{\hat{\beta}} and \eqn{\hat{V}(\hat{Y}_{FB})} are estimated using functions \code{VarHT} and \code{CovHT}, respectively. If
 #'  only first order probabilities are known, variances are estimated using Deville's method and covariances are estimated using following expression
 #'  \deqn{\widehat{Cov}(\hat{X}, \hat{Y}) = \frac{\hat{V}(X + Y) - \hat{V}(X) - \hat{V}(Y)}{2}}
-#' @return A numeric value representing population total estimation for considered values.
+#' @return \code{FB} returns an object of class "EstimatorDF" which is a list with, at least, the following components:
+#'  \item{Call}{the matched call.}
+#'  \item{Est}{total and mean estimation for main variable(s).}
+#'  \item{VarEst}{variance estimation for main variable(s).}
+#'  If parameter \code{conf_level} is different from \code{NULL}, object includes component
+#'  \item{ConfInt}{total and mean estimation and confidence intervals for main variables(s).}
+#'  In addition, components \code{TotDomEst} and \code{MeanDomEst} are available when estimator is based on estimators of the domains. Component \code{Param} shows value of parameters involded in calculation of the estimator (if any).
+#'  By default, only \code{Est} component (or \code{ConfInt} component, if parameter \code{conf_level} is different from \code{NULL}) is shown. It is possible to access to all the components of the objects by using function \code{summary}.
 #' @references Fuller, W.A. and Burmeister, L.F. (1972).
 #'  \emph{Estimation for Samples Selected From Two Overlapping Frames} ASA Proceedings of the Social Statistics Sections, 245 - 249.
 #' @seealso \code{\link{Hartley}} \code{\link{JackFB}}
 #' @examples
-#' data(HouseholdsA)
-#' dataA <- attach(HouseholdsA)
-#' detach(HouseholdsA)
-#' data(HouseholdsB)
-#' dataB <- attach(HouseholdsB)
-#' detach(HouseholdsB)
+#' data(DatA)
+#' data(DatB)
 #' data(PiklA)
 #' data(PiklB)
 #'
 #' #Let calculate Fuller-Burmeister estimator for variable Clothing
-#' FB(dataA$Clothing, dataB$Clothing, PiklA, PiklB, dataA$Domain, dataB$Domain)
+#' FB(DatA$Clo, DatB$Clo, PiklA, PiklB, DatA$Domain, DatB$Domain)
 #' 
 #' #Now, let calculate Fuller-Burmeister estimator and a 90% confidence interval
 #' #for variable Leisure, considering only first order inclusion probabilities
-#' FB(dataA$Leisure, dataB$Leisure, dataA$ProbA, dataB$ProbB, dataA$Domain, 
-#' dataB$Domain, 0.90)
+#' FB(DatA$Lei, DatB$Lei, DatA$ProbA, DatB$ProbB, DatA$Domain, 
+#' DatB$Domain, 0.90)
 #' @export
 FB = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, conf_level = NULL)
 {
@@ -96,27 +99,28 @@ FB = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, conf_level = NULL)
 	if (length(which(domains_B == "b")) + length(which(domains_B == "ba")) != length(domains_B))
 		stop("Domains from frame B are not correct.")
 
-	if (is.null(conf_level)) {
-		r = 2
-		rnames <- c("Total", "Mean")
-	}
-	else {
-		r = 6
-		rnames <- c("Total", "Upper End", "Lower End", "Mean", "Upper End", "Lower End")
-	}
+	cl <- match.call()
 
 	n_A <- nrow(ysA)
   	n_B <- nrow(ysB)
 	c <- ncol(ysA)
-	results <- matrix(NA, nrow = r, ncol = c)
-	rownames(results) <- rnames
-	colnames(results) <- cnames
 
 	ones_ab_A <- Domains (rep (1, n_A), domains_A, "ab")
 	ones_ab_B <- Domains (rep (1, n_B), domains_B, "ba")
 
-	H <- Hartley (ysA, ysB, pi_A, pi_B, domains_A, domains_B)
-	size_estimation <- H[1,1] / H[2,1]
+	est <- matrix(, 2, c, dimnames = list(c("Total", "Mean"), cnames))
+	varest <- matrix(, 2, c, dimnames = list(c("Var. Total", "Var. Mean"), cnames))
+	totdom <- matrix(, 4, c, dimnames = list(c("Total dom. a", "Total dom. ab", "Total dom. b", "Total dom. ba"), cnames))
+	meandom <- matrix(, 4, c, dimnames = list(c("Mean dom. a", "Mean dom. ab", "Mean dom. b", "Mean dom. ba"), cnames))
+	par <- 	matrix(, 2, c, dimnames = list(c("beta1", "beta2"), cnames))
+	if (is.null(conf_level))
+		interv <- NULL
+	else
+		interv <- matrix(, 6, c, dimnames = list(c("Total", "Lower Bound", "Upper Bound", "Mean", "Lower Bound", "Upper Bound"), cnames))
+
+	H <- Hartley (rep(1, nrow(ysA)), rep(1, nrow(ysB)), pi_A, pi_B, domains_A, domains_B)
+	size_estimation <- H$Est[1,1]
+	domain_size_estimation <- H$TotDomEst[,1]
 
 	if (!is.null(dim(drop(pi_A))) & !is.null(dim(drop(pi_B)))) {
 
@@ -163,23 +167,30 @@ FB = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, conf_level = NULL)
 			vec[1,1] <- Covhat_Yhat_a_A_Yhat_ab_A - Covhat_Yhat_b_B_Yhat_ab_B - Vhat_Yhat_ab_B
 			vec[2,1] <- Covhat_Yhat_a_A_Nhat_ab_A - Covhat_Yhat_b_B_Nhat_ab_B - Covhat_Yhat_ab_B_Nhat_ab_B
 
-			beta <- -solve(mat)%*%vec
+			beta <- -solve(mat,vec)
+
+			totdom[,k] <- c(Yhat_a_A, Yhat_ab_A, Yhat_b_B, Yhat_ab_B)
+			meandom[,k] <- totdom[,k]/domain_size_estimation
+			par[,k] <- beta
 	
 			total_estimation <- Yhat_a_A + Yhat_b_B + beta[1] * Yhat_ab_A + (1 - beta[1]) * Yhat_ab_B + beta[2] * (Nhat_ab_A - Nhat_ab_B)
 			mean_estimation <- total_estimation / size_estimation
-			results[,k] <- c(total_estimation, mean_estimation)
+			est[,k] <- c(total_estimation, mean_estimation)
+
+			Vhat_Yhat_a_A <- VarHT (data_a_A, pi_A)
+			Vhat_Yhat_b_B <- VarHT (data_b_B, pi_B)
+			Vhat_Yhat_B <- Vhat_Yhat_b_B + Vhat_Yhat_ab_B + 2 * Covhat_Yhat_b_B_Yhat_ab_B
+			Vhat_Yhat_FB <- Vhat_Yhat_a_A + Vhat_Yhat_B + beta[1] * (Covhat_Yhat_a_A_Yhat_ab_A - Covhat_Yhat_b_B_Yhat_ab_B - Vhat_Yhat_ab_B) + beta[2] * (Covhat_Yhat_a_A_Nhat_ab_A - Covhat_Yhat_b_B_Nhat_ab_B - Covhat_Yhat_ab_B_Nhat_ab_B)
+			Vhat_Ymeanhat_FB <- 1/size_estimation^2 * Vhat_Yhat_FB
+			varest[,k] <- c(Vhat_Yhat_FB, Vhat_Ymeanhat_FB)
 
 			if (!is.null(conf_level)) {
 
-				Vhat_Yhat_a_A <- VarHT (data_a_A, pi_A)
-				Vhat_Yhat_b_B <- VarHT (data_b_B, pi_B)
-				Vhat_Yhat_B <- Vhat_Yhat_b_B + Vhat_Yhat_ab_B + 2 * Covhat_Yhat_b_B_Yhat_ab_B
-				Vhat_Yhat_FB <- Vhat_Yhat_a_A + Vhat_Yhat_B + beta[1] * (Covhat_Yhat_a_A_Yhat_ab_A - Covhat_Yhat_b_B_Yhat_ab_B - Vhat_Yhat_ab_B) + beta[2] * (Covhat_Yhat_a_A_Nhat_ab_A - Covhat_Yhat_b_B_Nhat_ab_B - Covhat_Yhat_ab_B_Nhat_ab_B)
 				total_upper <- total_estimation + qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Yhat_FB)
 				total_lower <- total_estimation - qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Yhat_FB)
-				mean_upper <- mean_estimation + qnorm(1 - (1 - conf_level) / 2) * sqrt(1/size_estimation^2 * Vhat_Yhat_FB)
-				mean_lower <- mean_estimation - qnorm(1 - (1 - conf_level) / 2) * sqrt(1/size_estimation^2 * Vhat_Yhat_FB)
-				results[,k] <- c(total_estimation, total_upper, total_lower, mean_estimation, mean_upper, mean_lower)	
+				mean_upper <- mean_estimation + qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Ymeanhat_FB)
+				mean_lower <- mean_estimation - qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Ymeanhat_FB)
+				interv[,k] <- c(total_estimation, total_lower, total_upper, mean_estimation, mean_lower, mean_upper)	
 			}
 		}
 	}
@@ -223,32 +234,42 @@ FB = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, conf_level = NULL)
 				mat[2,1] <- mat [1,2]
 				mat[2,2] <- Vhat_Nhat_ab_A + Vhat_Nhat_ab_B
 		
-				vec <- matrix (0, nrow = 1, ncol = 2)
+				vec <- matrix (0, nrow = 2, ncol = 1)
 				vec[1,1] <- Covhat_Yhat_a_A_Yhat_ab_A - Covhat_Yhat_b_B_Yhat_ab_B - Vhat_Yhat_ab_B
-				vec[1,2] <- Covhat_Yhat_a_A_Nhat_ab_A - Covhat_Yhat_b_B_Nhat_ab_B - Covhat_Yhat_ab_B_Nhat_ab_B
+				vec[2,1] <- Covhat_Yhat_a_A_Nhat_ab_A - Covhat_Yhat_b_B_Nhat_ab_B - Covhat_Yhat_ab_B_Nhat_ab_B
 
-				beta <- -solve(mat) %*% t(vec)
+				beta <- -solve(mat, vec)
+
+				totdom[,k] <- c(Yhat_a_A, Yhat_ab_A, Yhat_b_B, Yhat_ab_B)
+				meandom[,k] <- totdom[,k]/domain_size_estimation
+				par[,k] <- beta
 
 				total_estimation <- Yhat_a_A + Yhat_b_B + beta[1] * Yhat_ab_A + (1 - beta[1]) * Yhat_ab_B + beta[2] * (Nhat_ab_A - Nhat_ab_B)
 				mean_estimation <- total_estimation / size_estimation
-				results[,k] <- c(total_estimation, mean_estimation)
+				est[,k] <- c(total_estimation, mean_estimation)
+
+      				Vhat_Yhat_a_A <- varest (data_a_A, pik = pi_A)
+				Vhat_Yhat_b_B <- varest (data_b_B, pik = pi_B)
+				Vhat_Yhat_B <- Vhat_Yhat_b_B + Vhat_Yhat_ab_B + 2 * Covhat_Yhat_b_B_Yhat_ab_B
+				Vhat_Yhat_FB <- Vhat_Yhat_a_A + Vhat_Yhat_B + beta[1] * (Covhat_Yhat_a_A_Yhat_ab_A - Covhat_Yhat_b_B_Yhat_ab_B - Vhat_Yhat_ab_B) + beta[2] * (Covhat_Yhat_a_A_Nhat_ab_A - Covhat_Yhat_b_B_Nhat_ab_B - Covhat_Yhat_ab_B_Nhat_ab_B)
+				Vhat_Ymeanhat_FB <- 1/size_estimation^2 * Vhat_Yhat_FB
+				varest[,k] <- c(Vhat_Yhat_FB, Vhat_Ymeanhat_FB)
 
 				if (!is.null(conf_level)) {
 
-      					Vhat_Yhat_a_A <- varest (data_a_A, pik = pi_A)
-					Vhat_Yhat_b_B <- varest (data_b_B, pik = pi_B)
-					Vhat_Yhat_B <- Vhat_Yhat_b_B + Vhat_Yhat_ab_B + 2 * Covhat_Yhat_b_B_Yhat_ab_B
-					Vhat_Yhat_FB <- Vhat_Yhat_a_A + Vhat_Yhat_B + beta[1] * (Covhat_Yhat_a_A_Yhat_ab_A - Covhat_Yhat_b_B_Yhat_ab_B - Vhat_Yhat_ab_B) + beta[2] * (Covhat_Yhat_a_A_Nhat_ab_A - Covhat_Yhat_b_B_Nhat_ab_B - Covhat_Yhat_ab_B_Nhat_ab_B)
 					total_upper <- total_estimation + qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Yhat_FB)
 					total_lower <- total_estimation - qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Yhat_FB)
-					mean_upper <- mean_estimation + qnorm(1 - (1 - conf_level) / 2) * sqrt(1/size_estimation^2 * Vhat_Yhat_FB)
-					mean_lower <- mean_estimation - qnorm(1 - (1 - conf_level) / 2) * sqrt(1/size_estimation^2 * Vhat_Yhat_FB)
-					results[,k] <- c(total_estimation, total_upper, total_lower, mean_estimation, mean_upper, mean_lower)			
+					mean_upper <- mean_estimation + qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Ymeanhat_FB)
+					mean_lower <- mean_estimation - qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Ymeanhat_FB)
+					interv[,k] <- c(total_estimation, total_lower, total_upper, mean_estimation, mean_lower, mean_upper)			
 				}
 			}
 		}
 		else
 			stop("Invalid option: Probability vector in one frame and probability matrix in the other frame. Type of probabilities structures must match.")
 	}
-	return (results)
+	results = list(Call = cl, Est = est, VarEst = varest, TotDomEst = totdom, MeanDomEst = meandom, Param = par, ConfInt = interv)
+   	class(results) = "EstimatorDF"
+   	attr(results, "attributesDF") = conf_level
+   	return(results)
 }

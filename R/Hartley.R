@@ -22,7 +22,14 @@
 #'  If both first and second order probabilities are known, variances and covariances involved in calculation of \eqn{\hat{\theta}_{opt}} and \eqn{\hat{V}(\hat{Y}_H)} are estimated using functions \code{VarHT} and \code{CovHT}, respectively. If
 #'  only first order probabilities are known, variances are estimated using Deville's method and covariances are estimated using following expression
 #'  \deqn{\widehat{Cov}(\hat{X}, \hat{Y}) = \frac{\hat{V}(X + Y) - \hat{V}(X) - \hat{V}(Y)}{2}} 
-#' @return A numeric matrix containing estimations of population total and population mean for considered values.
+#' @return \code{Hartley} returns an object of class "EstimatorDF" which is a list with, at least, the following components:
+#'  \item{Call}{the matched call.}
+#'  \item{Est}{total and mean estimation for main variable(s).}
+#'  \item{VarEst}{variance estimation for main variable(s).}
+#'  If parameter \code{conf_level} is different from \code{NULL}, object includes component
+#'  \item{ConfInt}{total and mean estimation and confidence intervals for main variables(s).}
+#'  In addition, components \code{TotDomEst} and \code{MeanDomEst} are available when estimator is based on estimators of the domains. Component \code{Param} shows value of parameters involded in calculation of the estimator (if any).
+#'  By default, only \code{Est} component (or \code{ConfInt} component, if parameter \code{conf_level} is different from \code{NULL}) is shown. It is possible to access to all the components of the objects by using function \code{summary}.
 #' @references Hartley, H. O. (1962)
 #'  \emph{Multiple Frames Surveys.}
 #'  Proceedings of the American Statistical Association, Social Statistics Sections, 203 - 206.
@@ -31,22 +38,18 @@
 #'  Sankhya C, Vol. 36, 99 - 118.
 #' @seealso \code{\link{JackHartley}}
 #' @examples
-#' data(HouseholdsA)
-#' dataA <- attach(HouseholdsA)
-#' detach (HouseholdsA)
-#' data(HouseholdsB)
-#' dataB <- attach(HouseholdsB)
-#' detach(HouseholdsB)
+#' data(DatA)
+#' data(DatB)
 #' data(PiklA)
 #' data(PiklB)
 #' 
 #' #Let calculate Hartley estimator for variable Feeding
-#' Hartley(dataA$Feeding, dataB$Feeding, PiklA, PiklB, dataA$Domain, dataB$Domain)
+#' Hartley(DatA$Feed, DatB$Feed, PiklA, PiklB, DatA$Domain, DatB$Domain)
 #' 
 #' #Now, let calculate Hartley estimator and a 90% confidence interval
 #' #for variable Leisure, considering only first order inclusion probabilities
-#' Hartley(dataA$Leisure, dataB$Leisure, dataA$ProbA, dataB$ProbB, dataA$Domain, 
-#' dataB$Domain, 0.90)
+#' Hartley(DatA$Lei, DatB$Lei, DatA$ProbA, DatB$ProbB, DatA$Domain, 
+#' DatB$Domain, 0.90)
 #' @export
 Hartley = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, conf_level = NULL)
 {	
@@ -79,26 +82,25 @@ Hartley = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, conf_level = NUL
 	if (length(which(domains_B == "b")) + length(which(domains_B == "ba")) != length(domains_B))
 		stop("Domains from frame B are not correct.")
 
-	if (is.null(conf_level)) {
-		r <- 2
-		rnames <- c("Total", "Mean")
-	}
-	else {
-		r <- 6
-		rnames <- c("Total", "Upper End", "Lower End", "Mean", "Upper End", "Lower End")
-	}
+	cl <- match.call()
 
 	n_A <- nrow(ysA)
 	n_B <- nrow(ysB)
-	c <- ncol(ysA)
-	results <- matrix(NA, nrow = r, ncol = c)
-	rownames(results) <- rnames
-	colnames(results) <- cnames
+	c <- ncol(ysA) 
 
 	ysA <- cbind(rep(1, n_A), ysA)
 	ysB <- cbind(rep(1, n_B), ysB)
-	c1 <- ncol(ysA)
-	
+
+	est <- matrix(, 2, c, dimnames = list(c("Total", "Mean"), cnames))
+	varest <- matrix(, 2, c, dimnames = list(c("Var. Total", "Var. Mean"), cnames))
+	totdom <- matrix(, 4, c, dimnames = list(c("Total dom. a", "Total dom. ab", "Total dom. b", "Total dom. ba"), cnames))
+	meandom <- matrix(, 4, c, dimnames = list(c("Mean dom. a", "Mean dom. ab", "Mean dom. b", "Mean dom. ba"), cnames))
+	par <- 	matrix(, 1, c, dimnames = list("theta", cnames))
+	if (is.null(conf_level))
+		interv <- NULL
+	else
+		interv <- matrix(, 6, c, dimnames = list(c("Total", "Lower Bound", "Upper Bound", "Mean", "Lower Bound", "Upper Bound"), cnames))
+
 	if (!is.null(dim(drop(pi_A))) & !is.null(dim(drop(pi_B)))) {
 
 		if (nrow(pi_A) != ncol(pi_A))
@@ -106,7 +108,7 @@ Hartley = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, conf_level = NUL
 		if (nrow(pi_B) != ncol(pi_B))
 			stop("Matrix of inclusion probabilities from frame B is not square.")
 
-		for (k in 1:c1) {
+		for (k in 1:(c+1)) {
 
 			data_a_A <- Domains(ysA[,k], domains_A, "a")
 			data_ab_A <- Domains(ysA[,k], domains_A, "ab")
@@ -131,23 +133,33 @@ Hartley = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, conf_level = NUL
 				theta_opt <- Vhat_Yhat_ab_B / (Vhat_Yhat_ab_A + Vhat_Yhat_ab_B)
 			}
 
-			if (k == 1)
+			if (k == 1){
+				domain_size_estimation <- c(Yhat_a_A, Yhat_ab_A, Yhat_b_B, Yhat_ab_B)
 				size_estimation <- Yhat_a_A + theta_opt * Yhat_ab_A + (1 - theta_opt) * Yhat_ab_B + Yhat_b_B
+			}
 			else
 				total_estimation <- Yhat_a_A + theta_opt * Yhat_ab_A + (1 - theta_opt) * Yhat_ab_B + Yhat_b_B
 
 			if (k > 1) {
+
+				totdom[,k-1] <- c(Yhat_a_A, Yhat_ab_A, Yhat_b_B, Yhat_ab_B)
+				meandom[,k-1] <- totdom[,k-1]/domain_size_estimation
+				par[,k-1] <- theta_opt
+
 				mean_estimation <- total_estimation / size_estimation
-				results[,k-1] <- c(total_estimation, mean_estimation)
+				est[,k-1] <- c(total_estimation, mean_estimation)
+
+				Vhat_Yhat_Hartley <- Vhat_Yhat_a_A + theta_opt^2 * Vhat_Yhat_ab_A + (1 - theta_opt)^2 * Vhat_Yhat_ab_B + Vhat_Yhat_b_B + 2 * theta_opt * Covhat_Yhat_a_A_Yhat_ab_A + 2 * (1 - theta_opt) * Covhat_Yhat_b_B_Yhat_ab_B
+				Vhat_Ymeanhat_Hartley <- 1/size_estimation^2*Vhat_Yhat_Hartley
+				varest[,k-1] <- c(Vhat_Yhat_Hartley, Vhat_Ymeanhat_Hartley)
 
 				if (!is.null(conf_level)) {
 
-					Vhat_Yhat_Hartley <- Vhat_Yhat_a_A + theta_opt^2 * Vhat_Yhat_ab_A + (1 - theta_opt)^2 * Vhat_Yhat_ab_B + Vhat_Yhat_b_B + 2 * theta_opt * Covhat_Yhat_a_A_Yhat_ab_A + 2 * (1 - theta_opt) * Covhat_Yhat_b_B_Yhat_ab_B
       					total_upper <- total_estimation + qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Yhat_Hartley)
 					total_lower <- total_estimation - qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Yhat_Hartley)
-					mean_upper <- mean_estimation + qnorm(1 - (1 - conf_level) / 2) * sqrt(1/size_estimation^2 * Vhat_Yhat_Hartley)
-					mean_lower <- mean_estimation - qnorm(1 - (1 - conf_level) / 2) * sqrt(1/size_estimation^2 * Vhat_Yhat_Hartley)
-					results[,k-1] <- c(total_estimation, total_upper, total_lower, mean_estimation, mean_upper, mean_lower)
+					mean_upper <- mean_estimation + qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Ymeanhat_Hartley)
+					mean_lower <- mean_estimation - qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Ymeanhat_Hartley)
+					interv[,k-1] <- c(total_estimation, total_lower, total_upper, mean_estimation, mean_lower, mean_upper)
 				}
 			}
 		}
@@ -156,7 +168,7 @@ Hartley = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, conf_level = NUL
 		
 		if (is.null(dim(drop(pi_A))) & is.null(dim(drop(pi_B)))){
 
-			for (k in 1:c1) {
+			for (k in 1:(c+1)) {
 
 				data_a_A <- Domains(ysA[,k], domains_A, "a")
 				data_ab_A <- Domains(ysA[,k], domains_A, "ab")
@@ -181,23 +193,33 @@ Hartley = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, conf_level = NUL
 					theta_opt <- Vhat_Yhat_ab_B / (Vhat_Yhat_ab_A + Vhat_Yhat_ab_B)
 				}
 
-				if (k == 1)
+				if (k == 1){
+					domain_size_estimation <- c(Yhat_a_A, Yhat_ab_A, Yhat_b_B, Yhat_ab_B)
 					size_estimation <- Yhat_a_A + theta_opt * Yhat_ab_A + (1 - theta_opt) * Yhat_ab_B + Yhat_b_B
+				}
 				else
 					total_estimation <- Yhat_a_A + theta_opt * Yhat_ab_A + (1 - theta_opt) * Yhat_ab_B + Yhat_b_B
 
 				if (k > 1) {
+
+					totdom[,k-1] <- c(Yhat_a_A, Yhat_ab_A, Yhat_b_B, Yhat_ab_B)
+					meandom[,k-1] <- totdom[,k-1]/domain_size_estimation
+					par[,k-1] <- theta_opt
+
 					mean_estimation <- total_estimation/size_estimation
-					results[,k-1] <- c(total_estimation, mean_estimation)
+					est[,k-1] <- c(total_estimation, mean_estimation)
+
+					Vhat_Yhat_Hartley <- Vhat_Yhat_a_A + theta_opt^2 * Vhat_Yhat_ab_A + (1 - theta_opt)^2 * Vhat_Yhat_ab_B + Vhat_Yhat_b_B + 2 * theta_opt * Covhat_Yhat_a_A_Yhat_ab_A + 2 * (1 - theta_opt) * Covhat_Yhat_b_B_Yhat_ab_B
+					Vhat_Ymeanhat_Hartley <- 1/size_estimation^2*Vhat_Yhat_Hartley
+					varest[,k-1] <- c(Vhat_Yhat_Hartley, Vhat_Ymeanhat_Hartley)
 
 					if (!is.null(conf_level)) {
 			
-						Vhat_Yhat_Hartley <- Vhat_Yhat_a_A + theta_opt^2 * Vhat_Yhat_ab_A + (1 - theta_opt)^2 * Vhat_Yhat_ab_B + Vhat_Yhat_b_B + 2 * theta_opt * Covhat_Yhat_a_A_Yhat_ab_A + 2 * (1 - theta_opt) * Covhat_Yhat_b_B_Yhat_ab_B
 						total_upper <- total_estimation + qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Yhat_Hartley)
 						total_lower <- total_estimation - qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Yhat_Hartley)
-						mean_upper <- mean_estimation + qnorm(1 - (1 - conf_level) / 2) * sqrt(1/size_estimation^2 * Vhat_Yhat_Hartley)
-						mean_lower <- mean_estimation - qnorm(1 - (1 - conf_level) / 2) * sqrt(1/size_estimation^2 * Vhat_Yhat_Hartley)
-						results[,k-1] <- c(total_estimation, total_upper, total_lower, mean_estimation, mean_upper, mean_lower)
+						mean_upper <- mean_estimation + qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Ymeanhat_Hartley)
+						mean_lower <- mean_estimation - qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Ymeanhat_Hartley)
+						interv[,k-1] <- c(total_estimation, total_lower, total_upper, mean_estimation, mean_lower, mean_upper)
 					}
 				}	
 			}
@@ -205,5 +227,8 @@ Hartley = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, conf_level = NUL
 		else
 			stop("Invalid option: Probability vector in one frame and probability matrix in the other frame. Type of probabilities structures must match.")
 	}
-	return (results)
+   	results = list(Call = cl, Est = est, VarEst = varest, TotDomEst = totdom, MeanDomEst = meandom, Param = par, ConfInt = interv)
+   	class(results) = "EstimatorDF"
+   	attr(results, "attributesDF") = conf_level
+   	return(results)
 }

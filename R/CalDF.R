@@ -1,8 +1,8 @@
 #' @name CalDF
 #' @aliases CalDF
-#' @title Dual frame calibration estimator
+#' @title DF calibration estimator
 #' 
-#' @description Produces estimates for population totals and means using the dual frame calibration estimator from survey data obtained
+#' @description Produces estimates for population totals and means using the DF calibration estimator from survey data obtained
 #'  from a dual frame sampling design. Confidence intervals are also computed, if required.
 #' 
 #' @usage CalDF(ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = NULL, 
@@ -27,7 +27,7 @@
 #' @param X (Optional) A numeric value or vector of length \eqn{m_T}, with \eqn{m_T} the number of auxiliary variables in both frames, indicating the population totals for the auxiliary variables considered in both frames.
 #' @param met (Optional) A character vector indicating the distance that must be used in calibration process. Possible values are "linear", "raking" and "logit". Default is "linear".
 #' @param conf_level (Optional) A numeric value indicating the confidence level for the confidence intervals, if desired.
-#' @details Dual frame calibration estimator of population total is given by
+#' @details DF calibration estimator of population total is given by
 #'  \deqn{\hat{Y}_{CalDF} = \hat{Y}_a + \hat{\eta}\hat{Y}_{ab} + \hat{Y}_b + (1 - \hat{\eta})\hat{Y}_{ba}}
 #'  where \eqn{\hat{Y}_a = \sum_{i \in s_a}\tilde{d}_i y_i, \hat{Y}_{ab} = \sum_{i \in s_{ab}}\tilde{d}_i y_i}, 
 #'  \eqn{\hat{Y}_b = \sum_{i \in s_b}\tilde{d}_i y_i} and \eqn{\hat{Y}_{ba} = \sum_{i \in s_{ba}}\tilde{d}_i y_i}, with \eqn{\tilde{d}_i} calibration weights which are calculated having into account a different set of constraints, depending on the case. For instance, if \eqn{N_A, N_B} and \eqn{N_{ab}} are all known and no other auxiliary information is available, calibration constraints are
@@ -55,7 +55,14 @@
 #'  To obtain an estimator of the variance for this estimator, one can use Deville's expression
 #'  \deqn{\hat{V}(\hat{Y}_{CalDF}) = \frac{1}{1-\sum_{k\in s} a_k^2}\sum_{k\in s}(1-\pi_k)\left(\frac{e_k}{\pi_k} - \sum_{l\in s} a_{l} \frac{e_l}{\pi_l}\right)^2}
 #'  where \eqn{a_k=(1-\pi_k)/\sum_{l\in s} (1-\pi_l)} and \eqn{e_k} are the residuals of the regression with auxiliary variables as regressors. 
-#' @return A numeric matrix containing estimations of population total and population mean for considered values.
+#' @return \code{CalDF} returns an object of class "EstimatorDF" which is a list with, at least, the following components:
+#'  \item{Call}{the matched call.}
+#'  \item{Est}{total and mean estimation for main variable(s).}
+#'  \item{VarEst}{variance estimation for main variable(s).}
+#'  If parameter \code{conf_level} is different from \code{NULL}, object includes component
+#'  \item{ConfInt}{total and mean estimation and confidence intervals for main variables(s).}
+#'  In addition, components \code{TotDomEst} and \code{MeanDomEst} are available when estimator is based on estimators of the domains. Component \code{Param} shows value of parameters involded in calculation of the estimator (if any).
+#'  By default, only \code{Est} component (or \code{ConfInt} component, if parameter \code{conf_level} is different from \code{NULL}) is shown. It is possible to access to all the components of the objects by using function \code{summary}.
 #' @references Ranalli, M. G., Arcos, A., Rueda, M. and Teodoro, A. (2013)
 #'  \emph{Calibration estimation in dual frame surveys}. arXiv:1312.0761 [stat.ME]
 #' @references Deville, J. C., Sarndal, C. E. (1992)
@@ -63,31 +70,27 @@
 #'  Journal of the American Statistical Association, 87, 376 - 382
 #' @seealso \code{\link{JackCalDF}}
 #' @examples
-#' data(HouseholdsA)
-#' dataA <- attach(HouseholdsA)
-#' detach(HouseholdsA)
-#' data(HouseholdsB)
-#' dataB <- attach(HouseholdsB)
-#' detach(HouseholdsB)
+#' data(DatA)
+#' data(DatB)
 #' data(PiklA)
 #' data(PiklB)
 #' 
-#' #Let calculate dual frame calibration estimator for variable Feeding, without
+#' #Let calculate DF calibration estimator for variable Feeding, without
 #' #considering any auxiliary information
-#' CalDF(dataA$Feeding, dataB$Feeding, PiklA, PiklB, dataA$Domain, dataB$Domain)
+#' CalDF(DatA$Feed, DatB$Feed, PiklA, PiklB, DatA$Domain, DatB$Domain)
 #' 
-#' #Now, let calculate dual frame calibration estimator for variable Clothing when the frame
+#' #Now, let calculate DF calibration estimator for variable Clothing when the frame
 #' #sizes and the overlap domain size are known
-#' CalDF(dataA$Clothing, dataB$Clothing, PiklA, PiklB, dataA$Domain, dataB$Domain, 
+#' CalDF(DatA$Clo, DatB$Clo, PiklA, PiklB, DatA$Domain, DatB$Domain, 
 #' N_A = 1735, N_B = 1191, N_ab = 601)
 #' 
-#' #Finally, let calculate dual frame calibration estimator and a 90% confidence interval
+#' #Finally, let calculate DF calibration estimator and a 90% confidence interval
 #' #for population total for variable Feeding, considering Income as auxiliary variable in 
 #' #frame A and Metres2 as auxiliary variable in frame B and with frame sizes and overlap 
 #' #domain size known.
-#' CalDF(dataA$Feeding, dataB$Feeding, PiklA, PiklB, dataA$Domain, dataB$Domain, 
-#' N_A = 1735, N_B =  1191, N_ab = 601, xsAFrameA = dataA$Income, xsBFrameA = dataB$Income, 
-#' xsAFrameB = dataA$Metres2, xsBFrameB = dataB$Metres2, XA = 4300260, XB = 176553, 
+#' CalDF(DatA$Feed, DatB$Feed, PiklA, PiklB, DatA$Domain, DatB$Domain, 
+#' N_A = 1735, N_B =  1191, N_ab = 601, xsAFrameA = DatA$Inc, xsBFrameA = DatB$Inc, 
+#' xsAFrameB = DatA$M2, xsBFrameB = DatB$M2, XA = 4300260, XB = 176553, 
 #' conf_level = 0.90)
 #' @export
 CalDF = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = NULL, N_ab = NULL, xsAFrameA = NULL, xsBFrameA = NULL, xsAFrameB = NULL, xsBFrameB = NULL, xsT = NULL, XA = NULL, XB = NULL, X = NULL, met = "linear", conf_level = NULL) {
@@ -125,29 +128,18 @@ CalDF = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = 
 	if ((is.null (xsAFrameB) & !is.null (xsBFrameB)) | (!is.null (xsAFrameB) & is.null (xsBFrameB)))
 		stop("Auxiliary information from Frame B is available only in one sample. This is not a possible option.")
 
-	if (is.null(conf_level)) {
-		r <- 2
-		rnames <- c("Total", "Mean")
-	}
-	else { 
-		r <- 6
-		rnames <- c("Total", "Upper End", "Lower End", "Mean", "Upper End", "Lower End")
-	}
+	cl <- match.call()
 
 	sample <- rbind(ysA, ysB)
 	n_A <- nrow(ysA)
 	n_B <- nrow(ysB)
 	n <- n_A + n_B
 	c <- ncol(ysA)
-	results <- matrix(NA, nrow = r, ncol = c)
- 	rownames(results) <- rnames
-	colnames(results) <- cnames
 
 	domains <- factor(c(as.character(domains_A), as.character(domains_B)))
 	ysA <- cbind(rep(1, n_A), ysA)
 	ysB <- cbind(rep(1, n_B), ysB)
 	sample <- rbind(ysA, ysB)
-	c1 <- ncol(sample)
 
 	delta_a <- Domains (rep (1, n), domains, "a")
 	delta_ab <- Domains (rep (1, n), domains, "ab")
@@ -158,6 +150,16 @@ CalDF = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = 
 	ones_ab_A <- Domains (rep (1, n_A), domains_A, "ab")
 	ones_b_B <- Domains (rep (1, n_B), domains_B, "b")
 	ones_ab_B <- Domains (rep (1, n_B), domains_B, "ba")
+
+	est <- matrix(, 2, c, dimnames = list(c("Total", "Mean"), cnames))
+	varest <- matrix(, 2, c, dimnames = list(c("Var. Total", "Var. Mean"), cnames))
+	totdom <- NULL
+	meandom <- NULL
+	par <- 	matrix(, 1, 1, dimnames = list("eta", ""))
+	if (is.null(conf_level))
+		interv <- NULL
+	else
+		interv <- matrix(, 6, c, dimnames = list(c("Total", "Lower Bound", "Upper Bound", "Mean", "Lower Bound", "Upper Bound"), cnames))
 
 	if (!is.null(dim(drop(pi_A))) & !is.null(dim(drop(pi_B)))) {
 
@@ -178,9 +180,10 @@ CalDF = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = 
 		Vhat_Nhat_ab_B <- VarHT(ones_ab_B, pi_B)
 
 		eta_0 <- Vhat_Nhat_ab_B / (Vhat_Nhat_ab_A + Vhat_Nhat_ab_B)
+		par[1,1] <- eta_0
 		d <- dd*delta_a + dd*eta_0*delta_ab + dd*(1-eta_0)*delta_ba + dd*delta_b
 
-		for (k in 1:c1) {
+		for (k in 1:(c+1)) {
 
 			if (is.null(xsAFrameA) & is.null(xsBFrameB) & is.null(xsT)) {
 
@@ -426,15 +429,20 @@ CalDF = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = 
 				total_estimation <- sum(g * d * sample[,k])
 
 			if (k > 1) {
+
 				mean_estimation <- total_estimation / size_estimation
-				results[,k-1] <- c(total_estimation, mean_estimation)
+				est[,k-1] <- c(total_estimation, mean_estimation)
+				Vhat_Yhat_CalDF <- varest(sample[,k], Xs, 1/d, g)
+				Vhat_Ymeanhat_CalDF <- 1/size_estimation^2 * Vhat_Yhat_CalDF
+				varest[,k-1] <- c(Vhat_Yhat_CalDF, Vhat_Ymeanhat_CalDF)
+
 				if (!is.null(conf_level)) {
-					Vhat_Yhat_CalDF <- varest(sample[,k], Xs, 1/d, g)
+
 					total_upper <- total_estimation + qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Yhat_CalDF)
 					total_lower <- total_estimation - qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Yhat_CalDF)
-					mean_upper <- mean_estimation + qnorm(1 - (1 - conf_level) / 2) * sqrt(1/size_estimation^2 * Vhat_Yhat_CalDF)
-					mean_lower <- mean_estimation - qnorm(1 - (1 - conf_level) / 2) * sqrt(1/size_estimation^2 * Vhat_Yhat_CalDF)
-					results[,k-1] <- c(total_estimation, total_upper, total_lower, mean_estimation, mean_upper, mean_lower)
+					mean_upper <- mean_estimation + qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Ymeanhat_CalDF)
+					mean_lower <- mean_estimation - qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Ymeanhat_CalDF)
+					interv[,k-1] <- c(total_estimation, total_lower, total_upper, mean_estimation, mean_lower, mean_upper)
 				}
 			}
 		}
@@ -455,9 +463,10 @@ CalDF = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = 
 			Vhat_Nhat_ab_B <- varest(ones_ab_B, pik = pi_B)
 
 			eta_0 <- Vhat_Nhat_ab_B / (Vhat_Nhat_ab_A + Vhat_Nhat_ab_B)
+			par[1,1] <- eta_0
 			d <- dd*delta_a + dd*eta_0*delta_ab + dd*(1-eta_0)*delta_ba + dd*delta_b
 
-			for (k in 1:c1) {
+			for (k in 1:(c+1)) {
 
 				if (is.null(xsAFrameA) & is.null(xsBFrameB) & is.null(xsT)) {
 
@@ -702,21 +711,29 @@ CalDF = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = 
 					total_estimation <- sum(g * d * sample[,k])
 
 				if (k > 1) {
+
 					mean_estimation <- total_estimation / size_estimation
-					results[,k-1] <- c(total_estimation, mean_estimation)
+					est[,k-1] <- c(total_estimation, mean_estimation)
+					Vhat_Yhat_CalDF <- varest(sample[,k], Xs, 1/d, g)
+					Vhat_Ymeanhat_CalDF <- 1/size_estimation^2 * Vhat_Yhat_CalDF
+					varest[,k-1] <- c(Vhat_Yhat_CalDF, Vhat_Ymeanhat_CalDF)
+
 					if (!is.null(conf_level)) {
-						Vhat_Yhat_CalDF <- varest(sample[,k], Xs, 1/d, g)
+						
 						total_upper <- total_estimation + qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Yhat_CalDF)
 						total_lower <- total_estimation - qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Yhat_CalDF)
-						mean_upper <- mean_estimation + qnorm(1 - (1 - conf_level) / 2) * sqrt(1/size_estimation^2 * Vhat_Yhat_CalDF)
-						mean_lower <- mean_estimation - qnorm(1 - (1 - conf_level) / 2) * sqrt(1/size_estimation^2 * Vhat_Yhat_CalDF)
-						results[,k-1] <- c(total_estimation, total_upper, total_lower, mean_estimation, mean_upper, mean_lower)
+						mean_upper <- mean_estimation + qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Ymeanhat_CalDF)
+						mean_lower <- mean_estimation - qnorm(1 - (1 - conf_level) / 2) * sqrt(Vhat_Ymeanhat_CalDF)
+						interv[,k-1] <- c(total_estimation, total_lower, total_upper, mean_estimation, mean_lower, mean_upper)
 					}
 				}	
 			}
 		}
 		else
 			stop("Invalid option: Probability vector in one frame and probability matrix in the other frame. Type of both structures must match.")
-	}
-return (results)
+	}   	
+	results = list(Call = cl, Est = est, VarEst = varest, TotDomEst = totdom, MeanDomEst = meandom, Param = par, ConfInt = interv)
+   	class(results) = "EstimatorDF"
+   	attr(results, "attributesDF") = conf_level
+   	return(results)
 }

@@ -21,7 +21,14 @@ Hartley(ysA, ysB, pi_A, pi_B, domains_A, domains_B, conf_level = NULL)
 \item{conf_level}{(Optional) A numeric value indicating the confidence level for the confidence intervals.}
 }
 \value{
-A numeric matrix containing estimations of population total and population mean for considered values.
+\code{Hartley} returns an object of class "EstimatorDF" which is a list with, at least, the following components:
+ \item{Call}{the matched call.}
+ \item{Est}{total and mean estimation for main variable(s).}
+ \item{VarEst}{variance estimation for main variable(s).}
+ If parameter \code{conf_level} is different from \code{NULL}, object includes component
+ \item{ConfInt}{total and mean estimation and confidence intervals for main variables(s).}
+ In addition, components \code{TotDomEst} and \code{MeanDomEst} are available when estimator is based on estimators of the domains. Component \code{Param} shows value of parameters involded in calculation of the estimator (if any).
+ By default, only \code{Est} component (or \code{ConfInt} component, if parameter \code{conf_level} is different from \code{NULL}) is shown. It is possible to access to all the components of the objects by using function \code{summary}.
 }
 \description{
 Produces estimates for population totals and means using Hartley estimator from survey data obtained
@@ -39,22 +46,18 @@ Hartley estimator of population total is given by
  \deqn{\widehat{Cov}(\hat{X}, \hat{Y}) = \frac{\hat{V}(X + Y) - \hat{V}(X) - \hat{V}(Y)}{2}}
 }
 \examples{
-data(HouseholdsA)
-dataA <- attach(HouseholdsA)
-detach (HouseholdsA)
-data(HouseholdsB)
-dataB <- attach(HouseholdsB)
-detach(HouseholdsB)
+data(DatA)
+data(DatB)
 data(PiklA)
 data(PiklB)
 
 #Let calculate Hartley estimator for variable Feeding
-Hartley(dataA$Feeding, dataB$Feeding, PiklA, PiklB, dataA$Domain, dataB$Domain)
+Hartley(DatA$Feed, DatB$Feed, PiklA, PiklB, DatA$Domain, DatB$Domain)
 
 #Now, let calculate Hartley estimator and a 90\% confidence interval
 #for variable Leisure, considering only first order inclusion probabilities
-Hartley(dataA$Leisure, dataB$Leisure, dataA$ProbA, dataB$ProbB, dataA$Domain,
-dataB$Domain, 0.90)
+Hartley(DatA$Lei, DatB$Lei, DatA$ProbA, DatB$ProbB, DatA$Domain,
+DatB$Domain, 0.90)
 }
 \references{
 Hartley, H. O. (1962)

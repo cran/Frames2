@@ -33,14 +33,14 @@ Ps <- matrix(c(0.4,0.1, 0.1,0.4), 2 ,2)
 VarHT(s, Ps)
 
 ##########   Example 2   ##########
-data(HouseholdsA)
-attach(HouseholdsA)
+data(DatA)
+attach(DatA)
 data(PiklA)
 
 #Let calculate Horvitz - Thompson estimator for total of variable Clothing in Frame A.
-HT(Clothing, ProbA)
+HT(Clo, ProbA)
 #And now, let compute the variance of the previous estimator
-VarHT(Clothing, PiklA)
+VarHT(Clo, PiklA)
 }
 \references{
 Horvitz, D. G. and Thompson, D. J. (1952)

@@ -25,7 +25,14 @@ PML(ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A, N_B, conf_level = NULL)
 \item{conf_level}{(Optional) A numeric value indicating the confidence level for the confidence intervals, if desired.}
 }
 \value{
-A numeric matrix containing estimations of population total and population mean for considered values.
+\code{PML} returns an object of class "EstimatorDF" which is a list with, at least, the following components:
+ \item{Call}{the matched call.}
+ \item{Est}{total and mean estimation for main variable(s).}
+ \item{VarEst}{variance estimation for main variable(s).}
+ If parameter \code{conf_level} is different from \code{NULL}, object includes component
+ \item{ConfInt}{total and mean estimation and confidence intervals for main variables(s).}
+ In addition, components \code{TotDomEst} and \code{MeanDomEst} are available when estimator is based on estimators of the domains. Component \code{Param} shows value of parameters involded in calculation of the estimator (if any).
+ By default, only \code{Est} component (or \code{ConfInt} component, if parameter \code{conf_level} is different from \code{NULL}) is shown. It is possible to access to all the components of the objects by using function \code{summary}.
 }
 \description{
 Produces estimates for population totals and means using PML estimator from survey data obtained
@@ -35,31 +42,33 @@ Produces estimates for population totals and means using PML estimator from surv
 Pseudo Maximum Likelihood estimator of population total is given by
  \deqn{\hat{Y}_{PML}(\hat{\theta}) = \frac{N_A - \hat{N}_{ab,PML}}{\hat{N}_a}\hat{Y}_a^A + \frac{N_B - \hat{N}_{ab,PML}}{\hat{N}_b}\hat{Y}_b^B + \frac{\hat{N}_{ab,PML}}{\hat{\theta}\hat{N}_{ab}^A + (1 - \hat{\theta})\hat{N}_{ab}^B}[\hat{\theta}\hat{Y}_{ab}^A + (1 - \hat{\theta})\hat{Y}_{ab}^B]}
  where \eqn{\hat{\theta} \in [0, 1]} and \eqn{\hat{N}_{ab,PML}} is the smaller of the roots of the quadratic equation
- \deqn{[\hat{\theta}/N_B + (1 - \hat{\theta})/N_A]x^2 - [1 + \hat{\theta}\hat{N}_{ab}^A/N_B + (1 - \hat{\theta})\hat{N}_{ab}^B/N_A]x + \hat{\theta}\hat{N}_{ab}^A + (1 - \hat{\theta})\hat{N}_{ab}^B=0.} Optimal value for \eqn{\hat{\theta}} is \eqn{\frac{\hat{N}_aN_B\hat{V}(\hat{N}_{ab}^B)}{\hat{N}_aN_B\hat{V}(\hat{N}_{ab}^B) + \hat{N}_bN_A\hat{V}(\hat{N}_{ab}^A)}}
+ \deqn{[\hat{\theta}/N_B + (1 - \hat{\theta})/N_A]x^2 - [1 + \hat{\theta}\hat{N}_{ab}^A/N_B + (1 - \hat{\theta})\hat{N}_{ab}^B/N_A]x + \hat{\theta}\hat{N}_{ab}^A + (1 - \hat{\theta})\hat{N}_{ab}^B=0.} Optimal value for \eqn{\hat{\theta}} is \eqn{\frac{\hat{N}_aN_B\hat{V}(\hat{N}_{ab}^B)}{\hat{N}_aN_B\hat{V}(\hat{N}_{ab}^B) + \hat{N}_bN_A\hat{V}(\hat{N}_{ab}^A)}}.
+ Variance is estimated according to following expression
+ \deqn{\hat{V}(\hat{Y}_{PML}(\hat{\theta})) = \hat{V}(\sum_{i \in s_A}\tilde{z}_i^A) + \hat{V}(\sum_{i \in s_B}\tilde{z}_i^B)}
+ where, \eqn{\tilde{z}_i^A = y_i - \frac{\hat{Y}_a}{\hat{N}_a}} if \eqn{i \in a} and \eqn{\tilde{z}_i^A = \hat{\gamma}_{opt}(y_i - \frac{\hat{Y}_a}{\hat{N}_a}) + \hat{\lambda} \hat{\phi}} if \eqn{i \in ab} with
+ \deqn{\hat{\gamma}_{opt} = \frac{\hat{N}_a N_B \hat{V}(\hat{N}_{ab}^B)}{\hat{N}_a N_B \hat{V}(\hat{N}_{ab}^B) + \hat{N}_b + N_A + \hat{V}(\hat{N}_{ab}^A)}}
+ \deqn{\hat{\lambda} = \frac{n_A/N_A \hat{Y}_{ab}^A + n_B/N_B \hat{Y}_{ab}^B}{n_A/N_A \hat{N}_{ab}^A + n_B/N_B \hat{N}_{ab}^B} - \frac{\hat{Y}_a}{\hat{N}_a} - \frac{\hat{Y}_b}{\hat{N}_b}}
+ \deqn{\hat{\phi} = \frac{n_A \hat{N}_b}{n_A \hat{N}_b + n_B\hat{N}_a}}
+ Similarly, we define \eqn{\tilde{z}_i^B = y_i - \frac{\hat{Y}_b}{\hat{N}_b}} if \eqn{i \in b} and \eqn{\tilde{z}_i^B = (1 - \hat{\gamma}_{opt})(y_i - \frac{\hat{Y}_{ba}}{\hat{N}_{ab}}) + \hat{\lambda}(1 - \hat{\phi})} if \eqn{i \in ba}
 }
 \examples{
-data(HouseholdsA)
-dataA <- attach(HouseholdsA)
-detach(HouseholdsA)
-data(HouseholdsB)
-dataB <- attach(HouseholdsB)
-detach(HouseholdsB)
+data(DatA)
+data(DatB)
 data(PiklA)
 data(PiklB)
 
 #Let calculate Pseudo Maximum Likelihood estimator for population total for variable Clothing
-PML(dataA$Clothing, dataB$Clothing, PiklA, PiklB, dataA$Domain, dataB$Domain,
+PML(DatA$Clo, DatB$Clo, PiklA, PiklB, DatA$Domain, DatB$Domain,
 N_A = 1735, N_B = 1191)
 
 #Now, let calculate Pseudo Maximum Likelihood estimator for population total for variable
 #Feeding, using first order inclusion probabilities
-
-PML(dataA$Feeding, dataB$Feeding, dataA$ProbA, dataB$ProbB, dataA$Domain, dataB$Domain,
+PML(DatA$Feed, DatB$Feed, DatA$ProbA, DatB$ProbB, DatA$Domain, DatB$Domain,
 N_A = 1735, N_B = 1191)
 
 #Finally, let calculate Pseudo Maximum Likelihood estimator and a 90\% confidence interval for
 #population total for variable Leisure
-PML(dataA$Leisure, dataB$Leisure, PiklA, PiklB, dataA$Domain, dataB$Domain,
+PML(DatA$Lei, DatB$Lei, PiklA, PiklB, DatA$Domain, DatB$Domain,
 N_A = 1735, N_B = 1191, 0.90)
 }
 \references{

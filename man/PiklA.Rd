@@ -8,7 +8,8 @@ PiklA
 }
 \description{
 This dataset consists of a square matrix of dimension 105 with the first and second order inclusion probabilities
- for the units included in \eqn{s_A}.
+ for the units included in sample \eqn{s_A}, which has been drawn from a population of size \eqn{N_A = 1735} according to a
+ stratified random sampling with population strata sizes \eqn{N_A^h = (727, 375, 113, 186, 115, 219)}
 }
 \examples{
 data(PiklA)
@@ -16,6 +17,9 @@ data(PiklA)
 PiklA[1:5, 1:5]
 #Now, let select only the first order inclusion probabilities
 diag(PiklA)
+}
+\seealso{
+\code{\link{DatA}}
 }
 \keyword{datasets}
 

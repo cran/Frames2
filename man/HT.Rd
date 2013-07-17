@@ -29,10 +29,10 @@ ps <- c(0.4, 0.4)
 HT(s, ps)
 
 ##########   Example 2   ##########
-data(HouseholdsA)
-attach(HouseholdsA)
+data(DatA)
+attach(DatA)
 #Let estimate population total for variable Feeding in frame A
-HT(Feeding, ProbA)
+HT(Feed, ProbA)
 }
 \references{
 Horvitz, D. G. and Thompson, D. J. (1952)

@@ -1,7 +1,7 @@
 Package: Frames2
 Type: Package
 Title: Estimation in dual frame surveys
-Version: 0.0.3
+Version: 0.1.0
 Date: 2013-07-17
 Author: Antonio Arcos <arcos@ugr.es>, Maria del Mar Rueda <mrueda@ugr.es>,
     Maria Giovanna Ranalli <giovanna.ranalli@stat.unipg.it> and David Molina
@@ -15,8 +15,8 @@ Description: Point and interval estimation in dual frame surveys. In contrast
     collected is suitably combined to get estimators of the parameter of
     interest.
 License: GPL (>= 2)
-Depends: sampling
-Packaged: 2014-09-02 07:51:43 UTC; David
+Imports: sampling
+Packaged: 2015-01-22 00:00:05 UTC; David
 NeedsCompilation: no
 Repository: CRAN
-Date/Publication: 2014-09-02 10:52:13
+Date/Publication: 2015-01-22 08:31:18

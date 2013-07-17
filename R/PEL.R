@@ -24,7 +24,15 @@
 #' @param XA (Optional) A numeric value or vector of length \eqn{m_A}, with \eqn{m_A} the number of auxiliary variables in frame A, indicating the population totals for the auxiliary variables considered in frame A.
 #' @param XB (Optional) A numeric value or vector of length \eqn{m_B}, with \eqn{m_B} the number of auxiliary variables in frame B, indicating the population totals for the auxiliary variables considered in frame B.
 #' @param conf_level (Optional) A numeric value indicating the confidence level for the confidence intervals, if desired.
-#' @return A numeric value representing dual frame calibration estimator for population total for considered values.
+#' @return \code{PEL} returns an object of class "EstimatorDF" which is a list with, at least, the following components:
+#'  \item{Call}{the matched call.}
+#'  \item{Est}{total and mean estimation for main variable(s).}
+#'  \item{VarEst}{variance estimation for main variable(s).}
+#'  If parameter \code{conf_level} is different from \code{NULL}, object includes component
+#'  \item{ConfInt}{total and mean estimation and confidence intervals for main variables(s).}
+#'  In addition, components \code{TotDomEst} and \code{MeanDomEst} are available when estimator is based on estimators of the domains. Component \code{Param} shows value of parameters involded in calculation of the estimator (if any).
+#'  By default, only \code{Est} component (or \code{ConfInt} component, if parameter \code{conf_level} is different from \code{NULL}) is shown. It is possible to access to all the components of the objects by using function \code{summary}.
+
 #' @details Pseudo empirical likelihood estimator for the population mean is computed as
 #'  \deqn{\hat{\bar{Y}}_{PEL} = \frac{N_a}{N}\hat{\bar{Y}}_a + \frac{\eta N_{ab}}{N}\hat{\bar{Y}}_{ab}^A + \frac{(1 - \eta) N_{ab}}{N}\hat{\bar{Y}}_{ab}^B + \frac{N_b}{N}\hat{\bar{Y}}_b}
 #'  where \eqn{\hat{\bar{Y}}_a = \sum_{k \in s_a}\hat{p}_{ak}y_k, \hat{\bar{Y}}_{ab} = \sum_{k \in s_{ab}^A}\hat{p}_{abk}^Ay_k, \hat{\bar{Y}}_{ab}^B = \sum_{k \in s_{ab}^B}\hat{p}_{abk}^By_k}
@@ -55,30 +63,26 @@
 #' Survey Methodology, Vol. 31, 2, pp. 239 - 243.
 #' @seealso \code{\link{JackPEL}}
 #' @examples
-#' data(HouseholdsA)
-#' dataA <- attach(HouseholdsA)
-#' detach(HouseholdsA)
-#' data(HouseholdsB)
-#' dataB <- attach(HouseholdsB)
-#' detach(HouseholdsB)
+#' data(DatA)
+#' data(DatB)
 #' data(PiklA)
 #' data(PiklB)
 #' 
 #' #Let calculate pseudo empirical likelihood estimator for variable Feeding, without
 #' #considering any auxiliary information
-#' PEL(dataA$Feeding, dataB$Feeding, PiklA, PiklB, dataA$Domain, dataB$Domain)
+#' PEL(DatA$Feed, DatB$Feed, PiklA, PiklB, DatA$Domain, DatB$Domain)
 #' 
 #' #Now, let calculate pseudo empirical estimator for variable Clothing when the frame
 #' #sizes and the overlap domain size are known
-#' PEL(dataA$Clothing, dataB$Clothing, PiklA, PiklB, dataA$Domain, dataB$Domain, 
+#' PEL(DatA$Clo, DatB$Clo, PiklA, PiklB, DatA$Domain, DatB$Domain, 
 #' N_A = 1735, N_B = 1191, N_ab = 601)
 #' 
 #' #Finally, let calculate pseudo empirical likelihood estimator and a 90% confidence interval
 #' #for population total for variable Feeding, considering Income and Metres2 as auxiliary 
 #' #variables and with frame sizes and overlap domain size known.
-#' PEL(dataA$Feeding, dataB$Feeding, PiklA, PiklB, dataA$Domain, dataB$Domain, 
-#' N_A = 1735, N_B =  1191, N_ab = 601, xsAFrameA = dataA$Income, xsBFrameA = dataB$Income, 
-#' xsAFrameB = dataA$Metres2, xsBFrameB = dataB$Metres2, XA = 4300260, XB = 176553, 
+#' PEL(DatA$Feed, DatB$Feed, PiklA, PiklB, DatA$Domain, DatB$Domain, 
+#' N_A = 1735, N_B =  1191, N_ab = 601, xsAFrameA = DatA$Inc, xsBFrameA = DatB$Inc, 
+#' xsAFrameB = DatA$M2, xsBFrameB = DatB$M2, XA = 4300260, XB = 176553, 
 #' conf_level = 0.90)
 #' @export
 PEL = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = NULL, N_ab = NULL, xsAFrameA = NULL, xsAFrameB = NULL, xsBFrameA = NULL, xsBFrameB = NULL, XA = NULL, XB = NULL, conf_level = NULL)
@@ -109,30 +113,20 @@ PEL = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = NU
 		stop("Domains from frame A are not correct.")
 	if (length(which(domains_B == "b")) + length(which(domains_B == "ba")) != length(domains_B))
 		stop("Domains from frame B are not correct.")
-	if ((is.null (N_A) == "TRUE" & is.null (N_B) == "FALSE") | (is.null (N_A) == "FALSE" & is.null (N_B) == "TRUE"))
+	if ((is.null (N_A) & !is.null (N_B)) | (!is.null (N_A) & is.null (N_B)))
 		stop("Only one value has been indicated for N_A and N_B. This is not valid. Both or none should be indicated.")
-	if (is.null (N_ab) == "FALSE" & (is.null (N_A) == "TRUE" | is.null (N_B) == "TRUE"))
+	if (!is.null (N_ab) & (is.null (N_A) | is.null (N_B)))
 		stop("A value for N_ab has been provided, but any value for N_A or N_B is missing. This is not a possible option.")
-
-	if (is.null(conf_level)) {
-		r <- 2
-		rnames <- c("Total", "Mean")
-	}
-	else { 
-		r <- 6
-		rnames <- c("Total", "Upper End", "Lower End", "Mean", "Upper End", "Lower End")
-	}
 
 	sample <- rbind(ysA, ysB)
 	domains <- factor(c(as.character(domains_A), as.character(domains_B)))
+	
+	cl <- match.call()
+	
 	n_A <- nrow (ysA)
 	n_B <- nrow (ysB)
 	n <-  n_A + n_B
 	c <- ncol(ysA)
-
-	results <- matrix(NA, nrow = r, ncol = c)
-	rownames(results) <- rnames
-	colnames(results) <- cnames
 	
 	delta_a <- Domains (rep (1, n), domains, "a")
 	delta_ab <- Domains (rep (1, n), domains, "ab")
@@ -144,6 +138,16 @@ PEL = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = NU
 	ones_b_B <- Domains (rep (1, n_B), domains_B, "b")
 	ones_ab_B <- Domains (rep (1, n_B), domains_B, "ba")
 
+	est <- matrix(, 2, c, dimnames = list(c("Total", "Mean"), cnames))
+	totdom <- matrix(, 4, c, dimnames = list(c("Total dom. a", "Total dom. ab", "Total dom. b", "Total dom. ba"), cnames))
+	meandom <- matrix(, 4, c, dimnames = list(c("Mean dom. a", "Mean dom. ab", "Mean dom. b", "Mean dom. ba"), cnames))
+	par <- 	matrix(, 1, c, dimnames = list("eta", cnames))
+	if (is.null(conf_level))
+		interv <- NULL
+	else
+		interv <- matrix(, 6, c, dimnames = list(c("Total", "Lower Bound", "Upper Bound", "Mean", "Lower Bound", "Upper Bound"), cnames))
+
+
 	if (!is.null(dim(drop(pi_A))) & !is.null(dim(drop(pi_B)))) {
 
 		pik <- c(diag(pi_A), diag(pi_B))	
@@ -154,17 +158,7 @@ PEL = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = NU
 		Nhat_b_B <- HT (ones_b_B, diag(pi_B))
 		Nhat_ab_B <- HT (ones_ab_B, diag(pi_B))
 
-		di_star <- rep (0, n)
-		for (i in 1:n) {
-			if (domains[i] == "a")
-				di_star[i] <- di[i] / sum(di[domains == "a"])
-			if (domains[i] == "ab")
-				di_star[i] <- di[i] / sum (di[domains == "ab"])
-			if (domains[i] == "b")
-				di_star[i] <- di[i] / sum(di[domains == "b"])
-			if (domains[i] == "ba")
-				di_star[i] <- di[i] / sum(di[domains == "ba"])
-		}
+		di_star <- di / tapply(di, domains, sum)[domains]
 
 		for (k in 1:c) {
 
@@ -174,6 +168,7 @@ PEL = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = NU
 			Vhat_Yhat_ab_B <- VarHT (data_ab_B, pi_B)
 
 			eta_0 <- Vhat_Yhat_ab_B / (Vhat_Yhat_ab_A + Vhat_Yhat_ab_B)
+			par[,k] <- eta_0
 
 			z1 <- delta_a
 			z2 <- delta_ab
@@ -201,7 +196,8 @@ PEL = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = NU
 						Wab_eta_0 <- eta_0 * Nhat_abP / Nhat_P
 						Wba_eta_0 <- (1 - eta_0) * Nhat_abP / Nhat_P
 						Wb <- (Nhat_B - Nhat_abP) / Nhat_P
-	
+						domain_size_estimation <- c(Nhat_A - Nhat_abP, Nhat_abP, Nhat_B - Nhat_abP, Nhat_abP)
+
 						zmean <- as.matrix (c(Wa, Wab_eta_0, Wba_eta_0, 0))
 					}
 					else {
@@ -212,6 +208,7 @@ PEL = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = NU
 						Wab_eta_0 <- eta_0 * Nhat_abP / Nhat_P
 						Wba_eta_0 <- (1 - eta_0) * Nhat_abP / Nhat_P
 						Wb <- (N_B - Nhat_abP) / Nhat_P
+						domain_size_estimation <- c(N_A - Nhat_abP, Nhat_abP, N_B - Nhat_abP, Nhat_abP)
 
 						zmean <- as.matrix (c(Wa, Wab_eta_0, Wba_eta_0, 0))
 					}
@@ -219,64 +216,56 @@ PEL = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = NU
 					Zmean <- matrix (zmean, nrow = nrow(z), ncol = ncol(z), byrow = T)
 					lambda <- Lag2 (z, di, zmean)
 
-					phat <- di_star / (rep(1,n) + (z - Zmean) %*% lambda)
-			
-					phat_star <- rep (0, n)
-					for (i in 1:n) {
-						if (domains[i] == "a")
-							phat_star[i] <- phat[i] / sum(phat[domains == "a"])
-						if (domains[i] == "ab")
-							phat_star[i] <- phat[i] / sum(phat[domains == "ab"])
-						if (domains[i] == "b")
-							phat_star[i] <- phat[i] / sum(phat[domains == "b"])
-						if (domains[i] == "ba")
-							phat_star[i] <- phat[i] / sum(phat[domains == "ba"])
-					}
+					phat <- as.vector(di_star / as.vector((rep(1,n) + crossprod(t(z - Zmean), lambda))))
+					phat_star <- as.vector(phat / tapply(phat, domains, sum)[domains])
+
 					Yhatmean_a <- sum (phat_star * sample[,k] * delta_a)
 					Yhatmean_ab <- sum (phat_star * sample[,k] * delta_ab)
 					Yhatmean_ba <- sum (phat_star * sample[,k] * delta_ba)
 					Yhatmean_b <- sum (phat_star * sample[,k] * delta_b)
 
+					meandom[,k] <- c(Yhatmean_a, Yhatmean_ab, Yhatmean_b, Yhatmean_ba)
+					totdom[,k] <- meandom[,k] * domain_size_estimation
+
 					mean_estimation <- Wa * Yhatmean_a + Wab_eta_0 * Yhatmean_ab + Wba_eta_0 * Yhatmean_ba + Wb * Yhatmean_b
 					total_estimation <- mean_estimation * Nhat_P
-
-					results[,k] <- c(total_estimation, mean_estimation)
+					est[,k] <- c(total_estimation, mean_estimation)
 	
 					if (!is.null(conf_level)) {
 					
 						Di_star <- diag(di_star)
 
-						suma1_a <- (t(z[domains == "a",] - Zmean[domains == "a",])) %*% Di_star[domains == "a", domains == "a"] %*% (z[domains == "a",] - Zmean[domains == "a",])
-						suma2_a <- t(z[domains == "a",] - Zmean[domains == "a",]) %*% Di_star[domains == "a", domains == "a"] %*% (sample[domains == "a",k] - mean_estimation)
-						suma1_ab <- (t(z[domains == "ab",] - Zmean[domains == "ab",])) %*% Di_star[domains == "ab", domains == "ab"] %*% (z[domains == "ab",] - Zmean[domains == "ab",])
-						suma2_ab <- t(z[domains == "ab",] - Zmean[domains == "ab",]) %*% Di_star[domains == "ab", domains == "ab"] %*% (sample[domains == "ab",k] - mean_estimation)
-						suma1_b <- (t(z[domains == "b",] - Zmean[domains == "b",])) %*% Di_star[domains == "b", domains == "b"] %*% (z[domains == "b",] - Zmean[domains == "b",])
-						suma2_b <- t(z[domains == "b",] - Zmean[domains == "b",]) %*% Di_star[domains == "b", domains == "b"] %*% (sample[domains == "b",k] - mean_estimation)
-						suma1_ba <- (t(z[domains == "ba",] - Zmean[domains == "ba",])) %*% Di_star[domains == "ba", domains == "ba"] %*% (z[domains == "ba",] - Zmean[domains == "ba",])
-						suma2_ba <- t(z[domains == "ba",] - Zmean[domains == "ba",]) %*% Di_star[domains == "ba", domains == "ba"] %*% (sample[domains == "ba",k] - mean_estimation)
-						Bhat <- solve(Wa * suma1_a + Wab_eta_0 * suma1_ab + Wba_eta_0 * suma1_ba + Wb * suma1_b) %*% (Wa * suma2_a + Wab_eta_0 * suma2_ab + Wba_eta_0 * suma2_ba + Wb * suma2_b)
+						suma1_a <- crossprod(t(crossprod(z[domains == "a",] - Zmean[domains == "a",], Di_star[domains == "a", domains == "a"])), z[domains == "a",] - Zmean[domains == "a",])
+						suma2_a <- crossprod(t(crossprod(z[domains == "a",] - Zmean[domains == "a",], Di_star[domains == "a", domains == "a"])), sample[domains == "a",k] - mean_estimation)
+						suma1_ab <- crossprod(t(crossprod(z[domains == "ab",] - Zmean[domains == "ab",], Di_star[domains == "ab", domains == "ab"])), z[domains == "ab",] - Zmean[domains == "ab",])
+						suma2_ab <- crossprod(t(crossprod(z[domains == "ab",] - Zmean[domains == "ab",], Di_star[domains == "ab", domains == "ab"])), sample[domains == "ab",k] - mean_estimation)
+						suma1_b <- crossprod(t(crossprod(z[domains == "b",] - Zmean[domains == "b",], Di_star[domains == "b", domains == "b"])), z[domains == "b",] - Zmean[domains == "b",])
+						suma2_b <- crossprod(t(crossprod(z[domains == "b",] - Zmean[domains == "b",], Di_star[domains == "b", domains == "b"])), sample[domains == "b",k] - mean_estimation)
+						suma1_ba <- crossprod(t(crossprod(z[domains == "ba",] - Zmean[domains == "ba",], Di_star[domains == "ba", domains == "ba"])), z[domains == "ba",] - Zmean[domains == "ba",])
+						suma2_ba <- crossprod(t(crossprod(z[domains == "ba",] - Zmean[domains == "ba",], Di_star[domains == "ba", domains == "ba"])), sample[domains == "ba",k] - mean_estimation)
+						Bhat <- solve(Wa * suma1_a + Wab_eta_0 * suma1_ab + Wba_eta_0 * suma1_ba + Wb * suma1_b, Wa * suma2_a + Wab_eta_0 * suma2_ab + Wba_eta_0 * suma2_ba + Wb * suma2_b)
 
-						rhat <- sample[,k] - z %*% Bhat
+						rhat <- sample[,k] - crossprod(t(z), Bhat)
 						Rhatmean_a <- sum (phat_star[domains == "a"] * rhat[domains == "a"])
 						Rhatmean_ab <- sum (phat_star[domains == "ab"] * rhat[domains == "ab"])
 						Rhatmean_b <- sum (phat_star[domains == "b"] * rhat[domains == "b"])
 						Rhatmean_ba <- sum (phat_star[domains == "ba"] * rhat[domains == "ba"])
-						r_tilde <- (rhat - Rhatmean_a) * delta_a + (eta_0 * (rhat - Rhatmean_ab)) * delta_ab + (rhat - Rhatmean_b) * delta_b + ((1 - eta_0) * (rhat[i] - Rhatmean_ba)) * delta_ba
+						r_tilde <- (rhat - Rhatmean_a) * delta_a + (eta_0 * (rhat - Rhatmean_ab)) * delta_ab + (rhat - Rhatmean_b) * delta_b + ((1 - eta_0) * (rhat - Rhatmean_ba)) * delta_ba
 						Vhat_A_Ar <- 1 / Nhat_P^2 * VarHT (r_tilde[domains == "a" | domains == "ab"], pi_A)
 						Vhat_B_Br <- 1 / Nhat_P^2 * VarHT (r_tilde[domains == "b" | domains == "ba"], pi_B)
 
-						rhatmean <- mean_estimation - t(Bhat) %*% zmean
+						rhatmean <- mean_estimation - crossprod(Bhat, zmean)
 						Rhatmean <- rep (rhatmean, n)
-						suma3_a <- t(di_star[domains == "a"]) %*% ((rhat[domains == "a"] - Rhatmean[domains == "a"])^2)
-						suma3_ab <- t(di_star[domains == "ab"]) %*% ((rhat[domains == "ab"] - Rhatmean[domains == "ab"])^2)
-						suma3_b <- t(di_star[domains == "b"]) %*% ((rhat[domains == "b"] - Rhatmean[domains == "b"])^2)
-						suma3_ba <- t(di_star[domains == "ba"]) %*% ((rhat[domains == "ba"] - Rhatmean[domains == "ba"])^2)
+						suma3_a <- crossprod(di_star[domains == "a"], (rhat[domains == "a"] - Rhatmean[domains == "a"])^2)
+						suma3_ab <- crossprod(di_star[domains == "ab"], (rhat[domains == "ab"] - Rhatmean[domains == "ab"])^2)
+						suma3_b <- crossprod(di_star[domains == "b"], (rhat[domains == "b"] - Rhatmean[domains == "b"])^2)
+						suma3_ba <- crossprod(di_star[domains == "ba"], (rhat[domains == "ba"] - Rhatmean[domains == "ba"])^2)
 						deff_P <- (Vhat_A_Ar + Vhat_B_Br) / (1 / n * (Wa * suma3_a + Wab_eta_0 * suma3_ab + Wba_eta_0 * suma3_ba + Wb * suma3_b))
 
 						conf_interv <- PELConfInt (conf_level, sample[,k], di_star, mean_estimation, n/deff_P, di_star)
 						upper <- conf_interv[1]
 						lower <- conf_interv[2]
-						results[,k] <- c(total_estimation, upper * Nhat_P, lower * Nhat_P, mean_estimation, upper, lower)	
+						interv[,k] <- c(total_estimation, lower * Nhat_P, upper * Nhat_P, mean_estimation, lower, upper)	
 					}
 				}
 				else {
@@ -287,69 +276,62 @@ PEL = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = NU
 					Wab_eta_0 <- eta_0 * N_ab / N
 					Wba_eta_0 <- (1 - eta_0) * N_ab / N
 					Wb <- (N_B - N_ab) / N
+					domain_size_estimation <- c(N_A - N_ab, N_ab, N_B - N_ab, N_ab)
 
 					zmean <- as.matrix (c(Wa, Wab_eta_0, Wba_eta_0, 0))
 					Zmean <- matrix (zmean, nrow = nrow(z), ncol = ncol(z), byrow = T)
 					lambda <- Lag2 (z, di, zmean)
 		
-					phat <- di_star / (rep(1,n) + (z - Zmean) %*% lambda)
-
-					phat_star <- rep (0, n)
-					for (i in 1:n) {
-						if (domains[i] == "a")
-							phat_star[i] <- phat[i] / sum(phat[domains == "a"])
-						if (domains[i] == "ab")
-							phat_star[i] <- phat[i] / sum(phat[domains == "ab"])
-						if (domains[i] == "b")
-							phat_star[i] <- phat[i] / sum(phat[domains == "b"])
-						if (domains[i] == "ba")
-							phat_star[i] <- phat[i] / sum(phat[domains == "ba"])
-					}
+					phat <- as.vector(di_star / as.vector((rep(1,n) + crossprod(t(z - Zmean), lambda))))
+					phat_star <- as.vector(phat / tapply(phat, domains, sum)[domains])
 
 					Yhatmean_a <- sum (phat_star * Domains(sample[,k], domains, "a"))
 					Yhatmean_ab <- sum (phat_star * Domains(sample[,k], domains, "ab"))
 					Yhatmean_b <- sum (phat_star * Domains(sample[,k], domains, "b"))
 					Yhatmean_ba <- sum (phat_star * Domains(sample[,k], domains, "ba"))
 
+					meandom[,k] <- c(Yhatmean_a, Yhatmean_ab, Yhatmean_b, Yhatmean_ba)
+					totdom[,k] <- meandom[,k] * domain_size_estimation
+
 					mean_estimation <- Wa * Yhatmean_a + Wab_eta_0 * Yhatmean_ab +  Wba_eta_0 * Yhatmean_ba + Wb * Yhatmean_b
 					total_estimation <- N * mean_estimation
-					results[,k] <- c(total_estimation, mean_estimation)
+					est[,k] <- c(total_estimation, mean_estimation)
 
 					if (!is.null(conf_level)) {
 
 						Di_star <- diag(di_star)
 
-						suma1_a <- (t(z[domains == "a",] - Zmean[domains == "a",])) %*% Di_star[domains == "a", domains == "a"] %*% (z[domains == "a",] - Zmean[domains == "a",])
-						suma2_a <- t(z[domains == "a",] - Zmean[domains == "a",]) %*% Di_star[domains == "a", domains == "a"] %*% (sample[domains == "a",k] - mean_estimation)
-						suma1_ab <- (t(z[domains == "ab",] - Zmean[domains == "ab",])) %*% Di_star[domains == "ab", domains == "ab"] %*% (z[domains == "ab",] - Zmean[domains == "ab",])
-						suma2_ab <- t(z[domains == "ab",] - Zmean[domains == "ab",]) %*% Di_star[domains == "ab", domains == "ab"] %*% (sample[domains == "ab",k] - mean_estimation)
-						suma1_b <- (t(z[domains == "b",] - Zmean[domains == "b",])) %*% Di_star[domains == "b", domains == "b"] %*% (z[domains == "b",] - Zmean[domains == "b",])
-						suma2_b <- t(z[domains == "b",] - Zmean[domains == "b",]) %*% Di_star[domains == "b", domains == "b"] %*% (sample[domains == "b",k] - mean_estimation)
-						suma1_ba <- (t(z[domains == "ba",] - Zmean[domains == "ba",])) %*% Di_star[domains == "ba", domains == "ba"] %*% (z[domains == "ba",] - Zmean[domains == "ba",])
-						suma2_ba <- t(z[domains == "ba",] - Zmean[domains == "ba",]) %*% Di_star[domains == "ba", domains == "ba"] %*% (sample[domains == "ba",k] - mean_estimation)
-						Bhat <- solve(Wa * suma1_a + Wab_eta_0 * suma1_ab + Wba_eta_0 * suma1_ba + Wb * suma1_b) %*% (Wa * suma2_a + Wab_eta_0 * suma2_ab + Wba_eta_0 * suma2_ba + Wb * suma2_b)
+						suma1_a <- crossprod(t(crossprod(z[domains == "a",] - Zmean[domains == "a",], Di_star[domains == "a", domains == "a"])), z[domains == "a",] - Zmean[domains == "a",])
+						suma2_a <- crossprod(t(crossprod(z[domains == "a",] - Zmean[domains == "a",], Di_star[domains == "a", domains == "a"])), sample[domains == "a",k] - mean_estimation)
+						suma1_ab <- crossprod(t(crossprod(z[domains == "ab",] - Zmean[domains == "ab",], Di_star[domains == "ab", domains == "ab"])), z[domains == "ab",] - Zmean[domains == "ab",])
+						suma2_ab <- crossprod(t(crossprod(z[domains == "ab",] - Zmean[domains == "ab",], Di_star[domains == "ab", domains == "ab"])), sample[domains == "ab",k] - mean_estimation)
+						suma1_b <- crossprod(t(crossprod(z[domains == "b",] - Zmean[domains == "b",], Di_star[domains == "b", domains == "b"])), z[domains == "b",] - Zmean[domains == "b",])
+						suma2_b <- crossprod(t(crossprod(z[domains == "b",] - Zmean[domains == "b",], Di_star[domains == "b", domains == "b"])), sample[domains == "b",k] - mean_estimation)
+						suma1_ba <- crossprod(t(crossprod(z[domains == "ba",] - Zmean[domains == "ba",], Di_star[domains == "ba", domains == "ba"])), z[domains == "ba",] - Zmean[domains == "ba",])
+						suma2_ba <- crossprod(t(crossprod(z[domains == "ba",] - Zmean[domains == "ba",], Di_star[domains == "ba", domains == "ba"])), sample[domains == "ba",k] - mean_estimation)
+						Bhat <- solve(Wa * suma1_a + Wab_eta_0 * suma1_ab + Wba_eta_0 * suma1_ba + Wb * suma1_b, Wa * suma2_a + Wab_eta_0 * suma2_ab + Wba_eta_0 * suma2_ba + Wb * suma2_b)
 
-						rhat <- sample[,k] - z %*% Bhat
+						rhat <- sample[,k] - crossprod(t(z), Bhat)
 						Rhatmean_a <- sum (phat_star[domains == "a"] * rhat[domains == "a"])
 						Rhatmean_ab <- sum (phat_star[domains == "ab"] * rhat[domains == "ab"])
 						Rhatmean_b <- sum (phat_star[domains == "b"] * rhat[domains == "b"])
 						Rhatmean_ba <- sum (phat_star[domains == "ba"] * rhat[domains == "ba"])
-						r_tilde <- (rhat - Rhatmean_a) * delta_a + (eta_0 * (rhat - Rhatmean_ab)) * delta_ab + (rhat - Rhatmean_b) * delta_b + ((1 - eta_0) * (rhat[i] - Rhatmean_ba)) * delta_ba
+						r_tilde <- (rhat - Rhatmean_a) * delta_a + (eta_0 * (rhat - Rhatmean_ab)) * delta_ab + (rhat - Rhatmean_b) * delta_b + ((1 - eta_0) * (rhat - Rhatmean_ba)) * delta_ba
 						Vhat_A_Ar <- 1 / N^2 * VarHT (r_tilde[domains == "a" | domains == "ab"], pi_A)
 						Vhat_B_Br <- 1 / N^2 * VarHT (r_tilde[domains == "b" | domains == "ba"], pi_B)
 
-						rhatmean <- mean_estimation - t(Bhat) %*% zmean
+						rhatmean <- mean_estimation - crossprod(Bhat, zmean)
 						Rhatmean <- rep (rhatmean, n)
-						suma3_a <- t(di_star[domains == "a"]) %*% ((rhat[domains == "a"] - Rhatmean[domains == "a"])^2)
-						suma3_ab <- t(di_star[domains == "ab"]) %*% ((rhat[domains == "ab"] - Rhatmean[domains == "ab"])^2)
-						suma3_b <- t(di_star[domains == "b"]) %*% ((rhat[domains == "b"] - Rhatmean[domains == "b"])^2)
-						suma3_ba <- t(di_star[domains == "ba"]) %*% ((rhat[domains == "ba"] - Rhatmean[domains == "ba"])^2)
+						suma3_a <- crossprod(di_star[domains == "a"], (rhat[domains == "a"] - Rhatmean[domains == "a"])^2)
+						suma3_ab <- crossprod(di_star[domains == "ab"], (rhat[domains == "ab"] - Rhatmean[domains == "ab"])^2)
+						suma3_b <- crossprod(di_star[domains == "b"], (rhat[domains == "b"] - Rhatmean[domains == "b"])^2)
+						suma3_ba <- crossprod(di_star[domains == "ba"], (rhat[domains == "ba"] - Rhatmean[domains == "ba"])^2)
 						deff_P <- (Vhat_A_Ar + Vhat_B_Br) / (1 / n * (Wa * suma3_a + Wab_eta_0 * suma3_ab + Wba_eta_0 * suma3_ba + Wb * suma3_b))
 
 						conf_interv <- PELConfInt (conf_level, sample[,k], di_star, mean_estimation, n/deff_P, di_star)
 						upper <- conf_interv[1]
 						lower <- conf_interv[2]
-						results[,k] <- c(total_estimation, N * upper, N * lower, mean_estimation, upper, lower)	
+						interv[,k] <- c(total_estimation, N * lower, N * upper, mean_estimation, lower, upper)	
 					}
 				}
 			}
@@ -367,6 +349,7 @@ PEL = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = NU
 					Wab_eta_0 <- eta_0 * Nhat_abP / Nhat_P
 					Wba_eta_0 <- (1 - eta_0) * Nhat_abP / Nhat_P
 					Wb <- (N_B - Nhat_abP) / Nhat_P
+					domain_size_estimation <- c(N_A - Nhat_abP, Nhat_abP, N_B - Nhat_abP, Nhat_abP)
 
 					if (is.null(xsAFrameA)){
 					
@@ -414,63 +397,56 @@ PEL = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = NU
 					}
 
 					lambda <- Lag2 (z, di, zmean)
-					phat <- di_star / (rep(1,n) + (z - Zmean) %*% lambda)
-					phat_star <- rep (0, n)
-					for (i in 1:n) {
-						if (domains[i] == "a")
-							phat_star[i] <- phat[i] / sum(phat[domains == "a"])
-						if (domains[i] == "ab")
-							phat_star[i] <- phat[i] / sum(phat[domains == "ab"])
-						if (domains[i] == "b")
-							phat_star[i] <- phat[i] / sum(phat[domains == "b"])
-						if (domains[i] == "ba")
-							phat_star[i] <- phat[i] / sum(phat[domains == "ba"])
-					}
+					phat <- as.vector(di_star / as.vector((rep(1,n) + crossprod(t(z - Zmean), lambda))))
+					phat_star <- as.vector(phat / tapply(phat, domains, sum)[domains])
 
 					Yhatmean_a <- sum (phat_star * Domains(sample[,k], domains, "a"))
 					Yhatmean_ab <- sum (phat_star * Domains(sample[,k], domains, "ab"))
 					Yhatmean_b <- sum (phat_star * Domains(sample[,k], domains, "b"))
 					Yhatmean_ba <- sum (phat_star * Domains(sample[,k], domains, "ba"))
 
+					meandom[,k] <- c(Yhatmean_a, Yhatmean_ab, Yhatmean_b, Yhatmean_ba)
+					totdom[,k] <- meandom[,k] * domain_size_estimation
+
 					mean_estimation <- Wa * Yhatmean_a + Wab_eta_0 * Yhatmean_ab + Wba_eta_0 * Yhatmean_ba + Wb * Yhatmean_b
 					total_estimation <- Nhat_P * mean_estimation
-					results[,k] <- c(total_estimation, mean_estimation)
+					est[,k] <- c(total_estimation, mean_estimation)
 
 					if (!is.null(conf_level)) {
 
 						Di_star <- diag(di_star)
 
-						suma1_a <- (t(z[domains == "a",] - Zmean[domains == "a",])) %*% Di_star[domains == "a", domains == "a"] %*% (z[domains == "a",] - Zmean[domains == "a",])
-						suma2_a <- t(z[domains == "a",] - Zmean[domains == "a",]) %*% Di_star[domains == "a", domains == "a"] %*% (sample[domains == "a",k] - mean_estimation)
-						suma1_ab <- (t(z[domains == "ab",] - Zmean[domains == "ab",])) %*% Di_star[domains == "ab", domains == "ab"] %*% (z[domains == "ab",] - Zmean[domains == "ab",])
-						suma2_ab <- t(z[domains == "ab",] - Zmean[domains == "ab",]) %*% Di_star[domains == "ab", domains == "ab"] %*% (sample[domains == "ab",k] - mean_estimation)
-						suma1_b <- (t(z[domains == "b",] - Zmean[domains == "b",])) %*% Di_star[domains == "b", domains == "b"] %*% (z[domains == "b",] - Zmean[domains == "b",])
-						suma2_b <- t(z[domains == "b",] - Zmean[domains == "b",]) %*% Di_star[domains == "b", domains == "b"] %*% (sample[domains == "b",k] - mean_estimation)
-						suma1_ba <- (t(z[domains == "ba",] - Zmean[domains == "ba",])) %*% Di_star[domains == "ba", domains == "ba"] %*% (z[domains == "ba",] - Zmean[domains == "ba",])
-						suma2_ba <- t(z[domains == "ba",] - Zmean[domains == "ba",]) %*% Di_star[domains == "ba", domains == "ba"] %*% (sample[domains == "ba",k] - mean_estimation)
-						Bhat <- solve(Wa * suma1_a + Wab_eta_0 * suma1_ab + Wba_eta_0 * suma1_ba + Wb * suma1_b) %*% (Wa * suma2_a + Wab_eta_0 * suma2_ab + Wba_eta_0 * suma2_ba + Wb * suma2_b)
+						suma1_a <- crossprod(t(crossprod(z[domains == "a",] - Zmean[domains == "a",], Di_star[domains == "a", domains == "a"])), z[domains == "a",] - Zmean[domains == "a",])
+						suma2_a <- crossprod(t(crossprod(z[domains == "a",] - Zmean[domains == "a",], Di_star[domains == "a", domains == "a"])), sample[domains == "a",k] - mean_estimation)
+						suma1_ab <- crossprod(t(crossprod(z[domains == "ab",] - Zmean[domains == "ab",], Di_star[domains == "ab", domains == "ab"])), z[domains == "ab",] - Zmean[domains == "ab",])
+						suma2_ab <- crossprod(t(crossprod(z[domains == "ab",] - Zmean[domains == "ab",], Di_star[domains == "ab", domains == "ab"])), sample[domains == "ab",k] - mean_estimation)
+						suma1_b <- crossprod(t(crossprod(z[domains == "b",] - Zmean[domains == "b",], Di_star[domains == "b", domains == "b"])), z[domains == "b",] - Zmean[domains == "b",])
+						suma2_b <- crossprod(t(crossprod(z[domains == "b",] - Zmean[domains == "b",], Di_star[domains == "b", domains == "b"])), sample[domains == "b",k] - mean_estimation)
+						suma1_ba <- crossprod(t(crossprod(z[domains == "ba",] - Zmean[domains == "ba",], Di_star[domains == "ba", domains == "ba"])), z[domains == "ba",] - Zmean[domains == "ba",])
+						suma2_ba <- crossprod(t(crossprod(z[domains == "ba",] - Zmean[domains == "ba",], Di_star[domains == "ba", domains == "ba"])), sample[domains == "ba",k] - mean_estimation)
+						Bhat <- solve(Wa * suma1_a + Wab_eta_0 * suma1_ab + Wba_eta_0 * suma1_ba + Wb * suma1_b, Wa * suma2_a + Wab_eta_0 * suma2_ab + Wba_eta_0 * suma2_ba + Wb * suma2_b)
 
-						rhat <- sample[,k] - z %*% Bhat
+						rhat <- sample[,k] - crossprod(t(z), Bhat)
 						Rhatmean_a <- sum (phat_star[domains == "a"] * rhat[domains == "a"])
 						Rhatmean_ab <- sum (phat_star[domains == "ab"] * rhat[domains == "ab"])
 						Rhatmean_b <- sum (phat_star[domains == "b"] * rhat[domains == "b"])
 						Rhatmean_ba <- sum (phat_star[domains == "ba"] * rhat[domains == "ba"])
-						r_tilde <- (rhat - Rhatmean_a) * delta_a + (eta_0 * (rhat - Rhatmean_ab)) * delta_ab + (rhat - Rhatmean_b) * delta_b + ((1 - eta_0) * (rhat[i] - Rhatmean_ba)) * delta_ba
+						r_tilde <- (rhat - Rhatmean_a) * delta_a + (eta_0 * (rhat - Rhatmean_ab)) * delta_ab + (rhat - Rhatmean_b) * delta_b + ((1 - eta_0) * (rhat - Rhatmean_ba)) * delta_ba
 						Vhat_A_Ar <- 1 / Nhat_P^2 * VarHT (r_tilde[domains == "a" | domains == "ab"], pi_A)
 						Vhat_B_Br <- 1 / Nhat_P^2 * VarHT (r_tilde[domains == "b" | domains == "ba"], pi_B)
 
-						rhatmean <- mean_estimation - t(Bhat) %*% zmean
+						rhatmean <- mean_estimation - crossprod(Bhat, zmean)
 						Rhatmean <- rep (rhatmean, n)
-						suma3_a <- t(di_star[domains == "a"]) %*% ((rhat[domains == "a"] - Rhatmean[domains == "a"])^2)
-						suma3_ab <- t(di_star[domains == "ab"]) %*% ((rhat[domains == "ab"] - Rhatmean[domains == "ab"])^2)
-						suma3_b <- t(di_star[domains == "b"]) %*% ((rhat[domains == "b"] - Rhatmean[domains == "b"])^2)
-						suma3_ba <- t(di_star[domains == "ba"]) %*% ((rhat[domains == "ba"] - Rhatmean[domains == "ba"])^2)
+						suma3_a <- crossprod(di_star[domains == "a"], (rhat[domains == "a"] - Rhatmean[domains == "a"])^2)
+						suma3_ab <- crossprod(di_star[domains == "ab"], (rhat[domains == "ab"] - Rhatmean[domains == "ab"])^2)
+						suma3_b <- crossprod(di_star[domains == "b"], (rhat[domains == "b"] - Rhatmean[domains == "b"])^2)
+						suma3_ba <- crossprod(di_star[domains == "ba"], (rhat[domains == "ba"] - Rhatmean[domains == "ba"])^2)
 						deff_P <- (Vhat_A_Ar + Vhat_B_Br) / (1 / n * (Wa * suma3_a + Wab_eta_0 * suma3_ab + Wba_eta_0 * suma3_ba + Wb * suma3_b))
 
 						conf_interv <- PELConfInt (conf_level, sample[,k], di_star, mean_estimation, n/deff_P, di_star)
 						upper <- conf_interv[1]
 						lower <- conf_interv[2]
-						results[,k] <- c(total_estimation, upper * Nhat_P, lower * Nhat_P, mean_estimation, upper, lower)	
+						interv[,k] <- c(total_estimation, lower * Nhat_P, upper * Nhat_P, mean_estimation, lower, upper)	
 					}
 				}
 				else {
@@ -481,6 +457,7 @@ PEL = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = NU
 					Wab_eta_0 <- eta_0 * N_ab / N
 					Wba_eta_0 <- (1 - eta_0) * N_ab / N
 					Wb <- (N_B - N_ab) / N
+					domain_size_estimation <- c(N_A - N_ab, N_ab, N_B - N_ab, N_ab)
 
 					if (is.null(xsAFrameA)){
 					
@@ -529,64 +506,56 @@ PEL = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = NU
 					}
 
 					lambda <- Lag2 (z, di, zmean)
-					phat <- di_star / (rep(1,n) + (z - Zmean) %*% lambda)
-
-					phat_star <- rep (0, n)
-					for (i in 1:n) {
-						if (domains[i] == "a")
-							phat_star[i] <- phat[i] / sum(phat[domains == "a"])
-						if (domains[i] == "ab")
-							phat_star[i] <- phat[i] / sum(phat[domains == "ab"])
-						if (domains[i] == "b")
-							phat_star[i] <- phat[i] / sum(phat[domains == "b"])
-						if (domains[i] == "ba")
-							phat_star[i] <- phat[i] / sum(phat[domains == "ba"])
-					}
+					phat <- as.vector(di_star / as.vector((rep(1,n) + crossprod(t(z - Zmean), lambda))))
+					phat_star <- as.vector(phat / tapply(phat, domains, sum)[domains])
 
 					Yhatmean_a <- sum (phat_star * Domains(sample[,k], domains, "a"))
 					Yhatmean_ab <- sum (phat_star * Domains(sample[,k], domains, "ab"))
 					Yhatmean_b <- sum (phat_star * Domains(sample[,k], domains, "b"))
 					Yhatmean_ba <- sum (phat_star * Domains(sample[,k], domains, "ba"))
 
+					meandom[,k] <- c(Yhatmean_a, Yhatmean_ab, Yhatmean_b, Yhatmean_ba)
+					totdom[,k] <- meandom[,k] * domain_size_estimation
+
 					mean_estimation <- Wa * Yhatmean_a + Wab_eta_0 * Yhatmean_ab + Wba_eta_0 * Yhatmean_ba + Wb * Yhatmean_b
 					total_estimation <- N * mean_estimation
-					results[,k] <- c(total_estimation, mean_estimation)
+					est[,k] <- c(total_estimation, mean_estimation)
 
 					if (!is.null(conf_level)) {
 
 						Di_star <- diag(di_star)
 
-						suma1_a <- (t(z[domains == "a",] - Zmean[domains == "a",])) %*% Di_star[domains == "a", domains == "a"] %*% (z[domains == "a",] - Zmean[domains == "a",])
-						suma2_a <- t(z[domains == "a",] - Zmean[domains == "a",]) %*% Di_star[domains == "a", domains == "a"] %*% (sample[domains == "a",k] - mean_estimation)
-						suma1_ab <- (t(z[domains == "ab",] - Zmean[domains == "ab",])) %*% Di_star[domains == "ab", domains == "ab"] %*% (z[domains == "ab",] - Zmean[domains == "ab",])
-						suma2_ab <- t(z[domains == "ab",] - Zmean[domains == "ab",]) %*% Di_star[domains == "ab", domains == "ab"] %*% (sample[domains == "ab",k] - mean_estimation)
-						suma1_b <- (t(z[domains == "b",] - Zmean[domains == "b",])) %*% Di_star[domains == "b", domains == "b"] %*% (z[domains == "b",] - Zmean[domains == "b",])
-						suma2_b <- t(z[domains == "b",] - Zmean[domains == "b",]) %*% Di_star[domains == "b", domains == "b"] %*% (sample[domains == "b",k] - mean_estimation)
-						suma1_ba <- (t(z[domains == "ba",] - Zmean[domains == "ba",])) %*% Di_star[domains == "ba", domains == "ba"] %*% (z[domains == "ba",] - Zmean[domains == "ba",])
-						suma2_ba <- t(z[domains == "ba",] - Zmean[domains == "ba",]) %*% Di_star[domains == "ba", domains == "ba"] %*% (sample[domains == "ba",k] - mean_estimation)
-						Bhat <- solve(Wa * suma1_a + Wab_eta_0 * suma1_ab + Wba_eta_0 * suma1_ba + Wb * suma1_b) %*% (Wa * suma2_a + Wab_eta_0 * suma2_ab + Wba_eta_0 * suma2_ba + Wb * suma2_b)
+						suma1_a <- crossprod(t(crossprod(z[domains == "a",] - Zmean[domains == "a",], Di_star[domains == "a", domains == "a"])), z[domains == "a",] - Zmean[domains == "a",])
+						suma2_a <- crossprod(t(crossprod(z[domains == "a",] - Zmean[domains == "a",], Di_star[domains == "a", domains == "a"])), sample[domains == "a",k] - mean_estimation)
+						suma1_ab <- crossprod(t(crossprod(z[domains == "ab",] - Zmean[domains == "ab",], Di_star[domains == "ab", domains == "ab"])), z[domains == "ab",] - Zmean[domains == "ab",])
+						suma2_ab <- crossprod(t(crossprod(z[domains == "ab",] - Zmean[domains == "ab",], Di_star[domains == "ab", domains == "ab"])), sample[domains == "ab",k] - mean_estimation)
+						suma1_b <- crossprod(t(crossprod(z[domains == "b",] - Zmean[domains == "b",], Di_star[domains == "b", domains == "b"])), z[domains == "b",] - Zmean[domains == "b",])
+						suma2_b <- crossprod(t(crossprod(z[domains == "b",] - Zmean[domains == "b",], Di_star[domains == "b", domains == "b"])), sample[domains == "b",k] - mean_estimation)
+						suma1_ba <- crossprod(t(crossprod(z[domains == "ba",] - Zmean[domains == "ba",], Di_star[domains == "ba", domains == "ba"])), z[domains == "ba",] - Zmean[domains == "ba",])
+						suma2_ba <- crossprod(t(crossprod(z[domains == "ba",] - Zmean[domains == "ba",], Di_star[domains == "ba", domains == "ba"])), sample[domains == "ba",k] - mean_estimation)
+						Bhat <- solve(Wa * suma1_a + Wab_eta_0 * suma1_ab + Wba_eta_0 * suma1_ba + Wb * suma1_b, Wa * suma2_a + Wab_eta_0 * suma2_ab + Wba_eta_0 * suma2_ba + Wb * suma2_b)
 
 						rhat <- sample[,k] - z %*% Bhat
 						Rhatmean_a <- sum (phat_star[domains == "a"] * rhat[domains == "a"])
 						Rhatmean_ab <- sum (phat_star[domains == "ab"] * rhat[domains == "ab"])
 						Rhatmean_b <- sum (phat_star[domains == "b"] * rhat[domains == "b"])
 						Rhatmean_ba <- sum (phat_star[domains == "ba"] * rhat[domains == "ba"])
-						r_tilde <- (rhat - Rhatmean_a) * delta_a + (eta_0 * (rhat - Rhatmean_ab)) * delta_ab + (rhat - Rhatmean_b) * delta_b + ((1 - eta_0) * (rhat[i] - Rhatmean_ba)) * delta_ba
+						r_tilde <- (rhat - Rhatmean_a) * delta_a + (eta_0 * (rhat - Rhatmean_ab)) * delta_ab + (rhat - Rhatmean_b) * delta_b + ((1 - eta_0) * (rhat - Rhatmean_ba)) * delta_ba
 						Vhat_A_Ar <- 1 / N^2 * VarHT (r_tilde[domains == "a" | domains == "ab"], pi_A)
 						Vhat_B_Br <- 1 / N^2 * VarHT (r_tilde[domains == "b" | domains == "ba"], pi_B)
 
-						rhatmean <- mean_estimation - t(Bhat) %*% zmean
+						rhatmean <- mean_estimation - crossprod(Bhat, zmean)
 						Rhatmean <- rep (rhatmean, n)
-						suma3_a <- t(di_star[domains == "a"]) %*% ((rhat[domains == "a"] - Rhatmean[domains == "a"])^2)
-						suma3_ab <- t(di_star[domains == "ab"]) %*% ((rhat[domains == "ab"] - Rhatmean[domains == "ab"])^2)
-						suma3_b <- t(di_star[domains == "b"]) %*% ((rhat[domains == "b"] - Rhatmean[domains == "b"])^2)
-						suma3_ba <- t(di_star[domains == "ba"]) %*% ((rhat[domains == "ba"] - Rhatmean[domains == "ba"])^2)
+						suma3_a <- crossprod(di_star[domains == "a"], (rhat[domains == "a"] - Rhatmean[domains == "a"])^2)
+						suma3_ab <- crossprod(di_star[domains == "ab"], (rhat[domains == "ab"] - Rhatmean[domains == "ab"])^2)
+						suma3_b <- crossprod(di_star[domains == "b"], (rhat[domains == "b"] - Rhatmean[domains == "b"])^2)
+						suma3_ba <- crossprod(di_star[domains == "ba"], (rhat[domains == "ba"] - Rhatmean[domains == "ba"])^2)
 						deff_P <- (Vhat_A_Ar + Vhat_B_Br) / (1 / n * (Wa * suma3_a + Wab_eta_0 * suma3_ab + Wba_eta_0 * suma3_ba + Wb * suma3_b))
 
 						conf_interv <- PELConfInt (conf_level, sample[,k], di_star, mean_estimation, n/deff_P, di_star)
 						upper <- conf_interv[1]
 						lower <- conf_interv[2]
-						results[,k] <- c(total_estimation, upper * N, lower * N, mean_estimation, upper, lower)	
+						interv[,k] <- c(total_estimation, lower * N, upper * N, mean_estimation, lower, upper)	
 					}		
 				}
 			}
@@ -624,6 +593,7 @@ PEL = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = NU
 				Vhat_Yhat_ab_B <- varest (data_ab_B, pik= pi_B)
 
 				eta_0 <- Vhat_Yhat_ab_B / (Vhat_Yhat_ab_A + Vhat_Yhat_ab_B)
+				par[,k] <- eta_0
 
 				z1 <- delta_a
 				z2 <- delta_ab
@@ -651,6 +621,7 @@ PEL = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = NU
 							Wab_eta_0 <- eta_0 * Nhat_abP / Nhat_P
 							Wba_eta_0 <- (1 - eta_0) * Nhat_abP / Nhat_P
 							Wb <- (Nhat_B - Nhat_abP) / Nhat_P
+							domain_size_estimation <- c(Nhat_A - Nhat_abP, Nhat_abP, Nhat_B - Nhat_abP, Nhat_abP)
 	
 							zmean <- as.matrix (c(Wa, Wab_eta_0, Wba_eta_0, 0))
 						}
@@ -662,6 +633,7 @@ PEL = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = NU
 							Wab_eta_0 <- eta_0 * Nhat_abP / Nhat_P
 							Wba_eta_0 <- (1 - eta_0) * Nhat_abP / Nhat_P
 							Wb <- (N_B - Nhat_abP) / Nhat_P
+							domain_size_estimation <- c(N_A - Nhat_abP, Nhat_abP, N_B - Nhat_abP, Nhat_abP)
 
 							zmean <- as.matrix (c(Wa, Wab_eta_0, Wba_eta_0, 0))
 						}
@@ -669,63 +641,56 @@ PEL = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = NU
 						Zmean <- matrix (zmean, nrow = nrow(z), ncol = ncol(z), byrow = T)
 						lambda <- Lag2 (z, di, zmean)
 
-						phat <- di_star / (rep(1,n) + (z - Zmean) %*% lambda)
-			
-						phat_star <- rep (0, n)
-						for (i in 1:n) {
-							if (domains[i] == "a")
-								phat_star[i] <- phat[i] / sum(phat[domains == "a"])
-							if (domains[i] == "ab")
-								phat_star[i] <- phat[i] / sum(phat[domains == "ab"])
-							if (domains[i] == "b")
-								phat_star[i] <- phat[i] / sum(phat[domains == "b"])
-							if (domains[i] == "ba")
-								phat_star[i] <- phat[i] / sum(phat[domains == "ba"])
-						}
+						phat <- as.vector(di_star / as.vector((rep(1,n) + crossprod(t(z - Zmean), lambda))))
+						phat_star <- as.vector(phat / tapply(phat, domains, sum)[domains])
+
 						Yhatmean_a <- sum (phat_star * sample[,k] * delta_a)
 						Yhatmean_ab <- sum (phat_star * sample[,k] * delta_ab)
 						Yhatmean_ba <- sum (phat_star * sample[,k] * delta_ba)
 						Yhatmean_b <- sum (phat_star * sample[,k] * delta_b)
 
+						meandom[,k] <- c(Yhatmean_a, Yhatmean_ab, Yhatmean_b, Yhatmean_ba)
+						totdom[,k] <- meandom[,k] * domain_size_estimation
+
 						mean_estimation <-  Wa * Yhatmean_a + Wab_eta_0 * Yhatmean_ab + Wba_eta_0 * Yhatmean_ba + Wb * Yhatmean_b
 						total_estimation <- Nhat_P * mean_estimation
-						results[,k] <- c(total_estimation, mean_estimation)
+						est[,k] <- c(total_estimation, mean_estimation)
 	
 						if (!is.null(conf_level)) {
 					
 							Di_star <- diag(di_star)
 
-							suma1_a <- (t(z[domains == "a",] - Zmean[domains == "a",])) %*% Di_star[domains == "a", domains == "a"] %*% (z[domains == "a",] - Zmean[domains == "a",])
-							suma2_a <- t(z[domains == "a",] - Zmean[domains == "a",]) %*% Di_star[domains == "a", domains == "a"] %*% (sample[domains == "a",k] - mean_estimation)
-							suma1_ab <- (t(z[domains == "ab",] - Zmean[domains == "ab",])) %*% Di_star[domains == "ab", domains == "ab"] %*% (z[domains == "ab",] - Zmean[domains == "ab",])
-							suma2_ab <- t(z[domains == "ab",] - Zmean[domains == "ab",]) %*% Di_star[domains == "ab", domains == "ab"] %*% (sample[domains == "ab",k] - mean_estimation)
-							suma1_b <- (t(z[domains == "b",] - Zmean[domains == "b",])) %*% Di_star[domains == "b", domains == "b"] %*% (z[domains == "b",] - Zmean[domains == "b",])
-							suma2_b <- t(z[domains == "b",] - Zmean[domains == "b",]) %*% Di_star[domains == "b", domains == "b"] %*% (sample[domains == "b",k] - mean_estimation)
-							suma1_ba <- (t(z[domains == "ba",] - Zmean[domains == "ba",])) %*% Di_star[domains == "ba", domains == "ba"] %*% (z[domains == "ba",] - Zmean[domains == "ba",])
-							suma2_ba <- t(z[domains == "ba",] - Zmean[domains == "ba",]) %*% Di_star[domains == "ba", domains == "ba"] %*% (sample[domains == "ba",k] - mean_estimation)
-							Bhat <- solve(Wa * suma1_a + Wab_eta_0 * suma1_ab + Wba_eta_0 * suma1_ba + Wb * suma1_b) %*% (Wa * suma2_a + Wab_eta_0 * suma2_ab + Wba_eta_0 * suma2_ba + Wb * suma2_b)
+							suma1_a <- crossprod(t(crossprod(z[domains == "a",] - Zmean[domains == "a",], Di_star[domains == "a", domains == "a"])), z[domains == "a",] - Zmean[domains == "a",])
+							suma2_a <- crossprod(t(crossprod(z[domains == "a",] - Zmean[domains == "a",], Di_star[domains == "a", domains == "a"])), sample[domains == "a",k] - mean_estimation)
+							suma1_ab <- crossprod(t(crossprod(z[domains == "ab",] - Zmean[domains == "ab",], Di_star[domains == "ab", domains == "ab"])), z[domains == "ab",] - Zmean[domains == "ab",])
+							suma2_ab <- crossprod(t(crossprod(z[domains == "ab",] - Zmean[domains == "ab",], Di_star[domains == "ab", domains == "ab"])), sample[domains == "ab",k] - mean_estimation)
+							suma1_b <- crossprod(t(crossprod(z[domains == "b",] - Zmean[domains == "b",], Di_star[domains == "b", domains == "b"])), z[domains == "b",] - Zmean[domains == "b",])
+							suma2_b <- crossprod(t(crossprod(z[domains == "b",] - Zmean[domains == "b",], Di_star[domains == "b", domains == "b"])), sample[domains == "b",k] - mean_estimation)
+							suma1_ba <- crossprod(t(crossprod(z[domains == "ba",] - Zmean[domains == "ba",], Di_star[domains == "ba", domains == "ba"])), z[domains == "ba",] - Zmean[domains == "ba",])
+							suma2_ba <- crossprod(t(crossprod(z[domains == "ba",] - Zmean[domains == "ba",], Di_star[domains == "ba", domains == "ba"])), sample[domains == "ba",k] - mean_estimation)
+							Bhat <- solve(Wa * suma1_a + Wab_eta_0 * suma1_ab + Wba_eta_0 * suma1_ba + Wb * suma1_b, Wa * suma2_a + Wab_eta_0 * suma2_ab + Wba_eta_0 * suma2_ba + Wb * suma2_b)
 
-							rhat <- sample[,k] - z %*% Bhat
+							rhat <- sample[,k] - crossprod(t(z), Bhat)
 							Rhatmean_a <- sum (phat_star[domains == "a"] * rhat[domains == "a"])
 							Rhatmean_ab <- sum (phat_star[domains == "ab"] * rhat[domains == "ab"])
 							Rhatmean_b <- sum (phat_star[domains == "b"] * rhat[domains == "b"])
 							Rhatmean_ba <- sum (phat_star[domains == "ba"] * rhat[domains == "ba"])
-							r_tilde <- (rhat - Rhatmean_a) * delta_a + (eta_0 * (rhat - Rhatmean_ab)) * delta_ab + (rhat - Rhatmean_b) * delta_b + ((1 - eta_0) * (rhat[i] - Rhatmean_ba)) * delta_ba
+							r_tilde <- (rhat - Rhatmean_a) * delta_a + (eta_0 * (rhat - Rhatmean_ab)) * delta_ab + (rhat - Rhatmean_b) * delta_b + ((1 - eta_0) * (rhat - Rhatmean_ba)) * delta_ba
 							Vhat_A_Ar <- 1 / Nhat_P^2 * varest (r_tilde[domains == "a" | domains == "ab"], pik = pi_A)
 							Vhat_B_Br <- 1 / Nhat_P^2 * varest (r_tilde[domains == "b" | domains == "ba"], pik = pi_B)
 
-							rhatmean <- mean_estimation - t(Bhat) %*% zmean
+							rhatmean <- mean_estimation - crossprod(Bhat, zmean)
 							Rhatmean <- rep (rhatmean, n)
-							suma3_a <- t(di_star[domains == "a"]) %*% ((rhat[domains == "a"] - Rhatmean[domains == "a"])^2)
-							suma3_ab <- t(di_star[domains == "ab"]) %*% ((rhat[domains == "ab"] - Rhatmean[domains == "ab"])^2)
-							suma3_b <- t(di_star[domains == "b"]) %*% ((rhat[domains == "b"] - Rhatmean[domains == "b"])^2)
-							suma3_ba <- t(di_star[domains == "ba"]) %*% ((rhat[domains == "ba"] - Rhatmean[domains == "ba"])^2)
+							suma3_a <- crossprod(di_star[domains == "a"], (rhat[domains == "a"] - Rhatmean[domains == "a"])^2)
+							suma3_ab <- crossprod(di_star[domains == "ab"], (rhat[domains == "ab"] - Rhatmean[domains == "ab"])^2)
+							suma3_b <- crossprod(di_star[domains == "b"], (rhat[domains == "b"] - Rhatmean[domains == "b"])^2)
+							suma3_ba <- crossprod(di_star[domains == "ba"], (rhat[domains == "ba"] - Rhatmean[domains == "ba"])^2)
 							deff_P <- (Vhat_A_Ar + Vhat_B_Br) / (1 / n * (Wa * suma3_a + Wab_eta_0 * suma3_ab + Wba_eta_0 * suma3_ba + Wb * suma3_b))
 	
 							conf_interv <- PELConfInt (conf_level, sample[,k], di_star, mean_estimation, n/deff_P, di_star)
 							upper <- conf_interv[1]
 							lower <- conf_interv[2]
-							results[,k] <- c(total_estimation, upper * Nhat_P, lower * Nhat_P, mean_estimation, upper, lower)	
+							interv[,k] <- c(total_estimation, lower * Nhat_P, upper * Nhat_P, mean_estimation, lower, upper)	
 						}
 					}
 					else {
@@ -736,33 +701,25 @@ PEL = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = NU
 						Wab_eta_0 <- eta_0 * N_ab / N
 						Wba_eta_0 <- (1 - eta_0) * N_ab / N
 						Wb <- (N_B - N_ab) / N
+						domain_size_estimation <- c(N_A - N_ab, N_ab, N_B - N_ab, N_ab)
 
 						zmean <- as.matrix (c(Wa, Wab_eta_0, Wba_eta_0, 0))
 						Zmean <- matrix (zmean, nrow = nrow(z), ncol = ncol(z), byrow = T)
 						lambda <- Lag2 (z, di, zmean)
-		
-						phat <- di_star / (rep(1,n) + (z - Zmean) %*% lambda)
-
-						phat_star <- rep (0, n)
-						for (i in 1:n) {
-							if (domains[i] == "a")
-								phat_star[i] <- phat[i] / sum(phat[domains == "a"])
-							if (domains[i] == "ab")
-								phat_star[i] <- phat[i] / sum(phat[domains == "ab"])
-							if (domains[i] == "b")
-								phat_star[i] <- phat[i] / sum(phat[domains == "b"])
-							if (domains[i] == "ba")
-								phat_star[i] <- phat[i] / sum(phat[domains == "ba"])
-						}
+						phat <- as.vector(di_star / as.vector((rep(1,n) + crossprod(t(z - Zmean), lambda))))
+						phat_star <- as.vector(phat / tapply(phat, domains, sum)[domains])
 
 						Yhatmean_a <- sum (phat_star * Domains(sample[,k], domains, "a"))
 						Yhatmean_ab <- sum (phat_star * Domains(sample[,k], domains, "ab"))
 						Yhatmean_b <- sum (phat_star * Domains(sample[,k], domains, "b"))
 						Yhatmean_ba <- sum (phat_star * Domains(sample[,k], domains, "ba"))
 
+						meandom[,k] <- c(Yhatmean_a, Yhatmean_ab, Yhatmean_b, Yhatmean_ba)
+						totdom[,k] <- meandom[,k] * domain_size_estimation
+
 						mean_estimation <- Wa * Yhatmean_a + Wab_eta_0 * Yhatmean_ab +  Wba_eta_0 * Yhatmean_ba + Wb * Yhatmean_b
 						total_estimation <- N * mean_estimation
-						results[,k] <- c(total_estimation, mean_estimation)
+						est[,k] <- c(total_estimation, mean_estimation)
 	
 						if (!is.null(conf_level)) {
 
@@ -777,28 +734,28 @@ PEL = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = NU
 							suma1_ba <- (t(z[domains == "ba",] - Zmean[domains == "ba",])) %*% Di_star[domains == "ba", domains == "ba"] %*% (z[domains == "ba",] - Zmean[domains == "ba",])
 							suma2_ba <- t(z[domains == "ba",] - Zmean[domains == "ba",]) %*% Di_star[domains == "ba", domains == "ba"] %*% (sample[domains == "ba",k] - mean_estimation)
 							Bhat <- solve(Wa * suma1_a + Wab_eta_0 * suma1_ab + Wba_eta_0 * suma1_ba + Wb * suma1_b) %*% (Wa * suma2_a + Wab_eta_0 * suma2_ab + Wba_eta_0 * suma2_ba + Wb * suma2_b)
-
-							rhat <- sample[,k] - z %*% Bhat
+							
+							rhat <- sample[,k] - crossprod(t(z), Bhat)
 							Rhatmean_a <- sum (phat_star[domains == "a"] * rhat[domains == "a"])
 							Rhatmean_ab <- sum (phat_star[domains == "ab"] * rhat[domains == "ab"])
 							Rhatmean_b <- sum (phat_star[domains == "b"] * rhat[domains == "b"])
 							Rhatmean_ba <- sum (phat_star[domains == "ba"] * rhat[domains == "ba"])
-							r_tilde <- (rhat - Rhatmean_a) * delta_a + (eta_0 * (rhat - Rhatmean_ab)) * delta_ab + (rhat - Rhatmean_b) * delta_b + ((1 - eta_0) * (rhat[i] - Rhatmean_ba)) * delta_ba
+							r_tilde <- (rhat - Rhatmean_a) * delta_a + (eta_0 * (rhat - Rhatmean_ab)) * delta_ab + (rhat - Rhatmean_b) * delta_b + ((1 - eta_0) * (rhat - Rhatmean_ba)) * delta_ba
 							Vhat_A_Ar <- 1 / N^2 * varest (r_tilde[domains == "a" | domains == "ab"], pik = pi_A)
 							Vhat_B_Br <- 1 / N^2 * varest (r_tilde[domains == "b" | domains == "ba"], pik = pi_B)
 
-							rhatmean <- mean_estimation - t(Bhat) %*% zmean
+							rhatmean <- mean_estimation - crossprod(Bhat, zmean)
 							Rhatmean <- rep (rhatmean, n)
-							suma3_a <- t(di_star[domains == "a"]) %*% ((rhat[domains == "a"] - Rhatmean[domains == "a"])^2)
-							suma3_ab <- t(di_star[domains == "ab"]) %*% ((rhat[domains == "ab"] - Rhatmean[domains == "ab"])^2)
-							suma3_b <- t(di_star[domains == "b"]) %*% ((rhat[domains == "b"] - Rhatmean[domains == "b"])^2)
-							suma3_ba <- t(di_star[domains == "ba"]) %*% ((rhat[domains == "ba"] - Rhatmean[domains == "ba"])^2)
+							suma3_a <- crossprod(di_star[domains == "a"], (rhat[domains == "a"] - Rhatmean[domains == "a"])^2)
+							suma3_ab <- crossprod(di_star[domains == "ab"], (rhat[domains == "ab"] - Rhatmean[domains == "ab"])^2)
+							suma3_b <- crossprod(di_star[domains == "b"], (rhat[domains == "b"] - Rhatmean[domains == "b"])^2)
+							suma3_ba <- crossprod(di_star[domains == "ba"], (rhat[domains == "ba"] - Rhatmean[domains == "ba"])^2)
 							deff_P <- (Vhat_A_Ar + Vhat_B_Br) / (1 / n * (Wa * suma3_a + Wab_eta_0 * suma3_ab + Wba_eta_0 * suma3_ba + Wb * suma3_b))
 
 							conf_interv <- PELConfInt (conf_level, sample[,k], di_star, mean_estimation, n/deff_P, di_star)
 							upper <- conf_interv[1]
 							lower <- conf_interv[2]
-							results[,k] <- c(total_estimation, upper * N, lower * N, mean_estimation, upper, lower)	
+							interv[,k] <- c(total_estimation, lower * N, upper * N, mean_estimation, lower, upper)	
 						}
 					}
 				}
@@ -816,6 +773,7 @@ PEL = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = NU
 						Wab_eta_0 <- eta_0 * Nhat_abP / Nhat_P
 						Wba_eta_0 <- (1 - eta_0) * Nhat_abP / Nhat_P
 						Wb <- (N_B - Nhat_abP) / Nhat_P
+						domain_size_estimation <- c(N_A - Nhat_abP, Nhat_abP, N_B - Nhat_abP, Nhat_abP)
 
 						if (is.null(xsAFrameA)){
 					
@@ -863,63 +821,55 @@ PEL = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = NU
 						}
 
 						lambda <- Lag2 (z, di, zmean)
-						phat <- di_star / (rep(1,n) + (z - Zmean) %*% lambda)
-						phat_star <- rep (0, n)
-						for (i in 1:n) {
-							if (domains[i] == "a")
-								phat_star[i] <- phat[i] / sum(phat[domains == "a"])
-							if (domains[i] == "ab")
-								phat_star[i] <- phat[i] / sum(phat[domains == "ab"])
-							if (domains[i] == "b")
-								phat_star[i] <- phat[i] / sum(phat[domains == "b"])
-							if (domains[i] == "ba")
-								phat_star[i] <- phat[i] / sum(phat[domains == "ba"])
-						}
+						phat <- as.vector(di_star / as.vector((rep(1,n) + crossprod(t(z - Zmean), lambda))))
+						phat_star <- as.vector(phat / tapply(phat, domains, sum)[domains])
 
 						Yhatmean_a <- sum (phat_star * Domains(sample[,k], domains, "a"))
 						Yhatmean_ab <- sum (phat_star * Domains(sample[,k], domains, "ab"))
 						Yhatmean_b <- sum (phat_star * Domains(sample[,k], domains, "b"))
 						Yhatmean_ba <- sum (phat_star * Domains(sample[,k], domains, "ba"))
 
+						meandom[,k] <- c(Yhatmean_a, Yhatmean_ab, Yhatmean_b, Yhatmean_ba)
+						totdom[,k] <- meandom[,k] * domain_size_estimation
+
 						mean_estimation <- Wa * Yhatmean_a + Wab_eta_0 * Yhatmean_ab + Wba_eta_0 * Yhatmean_ba + Wb * Yhatmean_b
 						total_estimation <- Nhat_P * mean_estimation
-						results[,k] <- c(total_estimation, mean_estimation)
+						est[,k] <- c(total_estimation, mean_estimation)
 
 						if (!is.null(conf_level)) {
 
 							Di_star <- diag(di_star)
 
-							suma1_a <- (t(z[domains == "a",] - Zmean[domains == "a",])) %*% Di_star[domains == "a", domains == "a"] %*% (z[domains == "a",] - Zmean[domains == "a",])
-							suma2_a <- t(z[domains == "a",] - Zmean[domains == "a",]) %*% Di_star[domains == "a", domains == "a"] %*% (sample[domains == "a",k] - mean_estimation)
-							suma1_ab <- (t(z[domains == "ab",] - Zmean[domains == "ab",])) %*% Di_star[domains == "ab", domains == "ab"] %*% (z[domains == "ab",] - Zmean[domains == "ab",])
-							suma2_ab <- t(z[domains == "ab",] - Zmean[domains == "ab",]) %*% Di_star[domains == "ab", domains == "ab"] %*% (sample[domains == "ab",k] - mean_estimation)
-							suma1_b <- (t(z[domains == "b",] - Zmean[domains == "b",])) %*% Di_star[domains == "b", domains == "b"] %*% (z[domains == "b",] - Zmean[domains == "b",])
-							suma2_b <- t(z[domains == "b",] - Zmean[domains == "b",]) %*% Di_star[domains == "b", domains == "b"] %*% (sample[domains == "b",k] - mean_estimation)
-							suma1_ba <- (t(z[domains == "ba",] - Zmean[domains == "ba",])) %*% Di_star[domains == "ba", domains == "ba"] %*% (z[domains == "ba",] - Zmean[domains == "ba",])
-							suma2_ba <- t(z[domains == "ba",] - Zmean[domains == "ba",]) %*% Di_star[domains == "ba", domains == "ba"] %*% (sample[domains == "ba",k] - mean_estimation)
-							Bhat <- solve(Wa * suma1_a + Wab_eta_0 * suma1_ab + Wba_eta_0 * suma1_ba + Wb * suma1_b) %*% (Wa * suma2_a + Wab_eta_0 * suma2_ab + Wba_eta_0 * suma2_ba + Wb * suma2_b)
+							suma1_a <- crossprod(t(crossprod(z[domains == "a",] - Zmean[domains == "a",], Di_star[domains == "a", domains == "a"])), z[domains == "a",] - Zmean[domains == "a",])
+							suma2_a <- crossprod(t(crossprod(z[domains == "a",] - Zmean[domains == "a",], Di_star[domains == "a", domains == "a"])), sample[domains == "a",k] - mean_estimation)
+							suma1_ab <- crossprod(t(crossprod(z[domains == "ab",] - Zmean[domains == "ab",], Di_star[domains == "ab", domains == "ab"])), z[domains == "ab",] - Zmean[domains == "ab",])
+							suma2_ab <- crossprod(t(crossprod(z[domains == "ab",] - Zmean[domains == "ab",], Di_star[domains == "ab", domains == "ab"])), sample[domains == "ab",k] - mean_estimation)
+							suma1_b <- crossprod(t(crossprod(z[domains == "b",] - Zmean[domains == "b",], Di_star[domains == "b", domains == "b"])), z[domains == "b",] - Zmean[domains == "b",])
+							suma2_b <- crossprod(t(crossprod(z[domains == "b",] - Zmean[domains == "b",], Di_star[domains == "b", domains == "b"])), sample[domains == "b",k] - mean_estimation)
+							suma1_ba <- crossprod(t(crossprod(z[domains == "ba",] - Zmean[domains == "ba",], Di_star[domains == "ba", domains == "ba"])), z[domains == "ba",] - Zmean[domains == "ba",])
+							suma2_ba <- crossprod(t(crossprod(z[domains == "ba",] - Zmean[domains == "ba",], Di_star[domains == "ba", domains == "ba"])), sample[domains == "ba",k] - mean_estimation)
+							Bhat <- solve(Wa * suma1_a + Wab_eta_0 * suma1_ab + Wba_eta_0 * suma1_ba + Wb * suma1_b, Wa * suma2_a + Wab_eta_0 * suma2_ab + Wba_eta_0 * suma2_ba + Wb * suma2_b)
 
-							rhat <- sample[,k] - z %*% Bhat
+							rhat <- sample[,k] - crossprod(t(z), Bhat)
 							Rhatmean_a <- sum (phat_star[domains == "a"] * rhat[domains == "a"])
 							Rhatmean_ab <- sum (phat_star[domains == "ab"] * rhat[domains == "ab"])
 							Rhatmean_b <- sum (phat_star[domains == "b"] * rhat[domains == "b"])
 							Rhatmean_ba <- sum (phat_star[domains == "ba"] * rhat[domains == "ba"])
-							r_tilde <- (rhat - Rhatmean_a) * delta_a + (eta_0 * (rhat - Rhatmean_ab)) * delta_ab + (rhat - Rhatmean_b) * delta_b + ((1 - eta_0) * (rhat[i] - Rhatmean_ba)) * delta_ba
+							r_tilde <- (rhat - Rhatmean_a) * delta_a + (eta_0 * (rhat - Rhatmean_ab)) * delta_ab + (rhat - Rhatmean_b) * delta_b + ((1 - eta_0) * (rhat - Rhatmean_ba)) * delta_ba
 							Vhat_A_Ar <- 1 / Nhat_P^2 * varest (r_tilde[domains == "a" | domains == "ab"], pik = pi_A)
 							Vhat_B_Br <- 1 / Nhat_P^2 * varest (r_tilde[domains == "b" | domains == "ba"], pik = pi_B)
 
-							rhatmean <- mean_estimation - t(Bhat) %*% zmean
+							rhatmean <- mean_estimation - crossprod(Bhat, zmean)
 							Rhatmean <- rep (rhatmean, n)
-							suma3_a <- t(di_star[domains == "a"]) %*% ((rhat[domains == "a"] - Rhatmean[domains == "a"])^2)
-							suma3_ab <- t(di_star[domains == "ab"]) %*% ((rhat[domains == "ab"] - Rhatmean[domains == "ab"])^2)
-							suma3_b <- t(di_star[domains == "b"]) %*% ((rhat[domains == "b"] - Rhatmean[domains == "b"])^2)
-							suma3_ba <- t(di_star[domains == "ba"]) %*% ((rhat[domains == "ba"] - Rhatmean[domains == "ba"])^2)
+							suma3_a <- crossprod(di_star[domains == "a"], (rhat[domains == "a"] - Rhatmean[domains == "a"])^2)
+							suma3_ab <- crossprod(di_star[domains == "ab"], (rhat[domains == "ab"] - Rhatmean[domains == "ab"])^2)
+							suma3_b <- crossprod(di_star[domains == "b"], (rhat[domains == "b"] - Rhatmean[domains == "b"])^2)
+							suma3_ba <- crossprod(di_star[domains == "ba"], (rhat[domains == "ba"] - Rhatmean[domains == "ba"])^2)
 							deff_P <- (Vhat_A_Ar + Vhat_B_Br) / (1 / n * (Wa * suma3_a + Wab_eta_0 * suma3_ab + Wba_eta_0 * suma3_ba + Wb * suma3_b))
-
 							conf_interv <- PELConfInt (conf_level, sample[,k], di_star, mean_estimation, n/deff_P, di_star)
 							upper <- conf_interv[1]
 							lower <- conf_interv[2]
-							results[,k] <- c(total_estimation, upper * Nhat_P, lower * Nhat_P, mean_estimation, upper, lower)	
+							interv[,k] <- c(total_estimation, lower * Nhat_P, upper * Nhat_P, mean_estimation, lower, upper)	
 						}
 					}
 					else {
@@ -930,6 +880,7 @@ PEL = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = NU
 						Wab_eta_0 <- eta_0 * N_ab / N
 						Wba_eta_0 <- (1 - eta_0) * N_ab / N
 						Wb <- (N_B - N_ab) / N
+						domain_size_estimation <- c(N_A - N_ab, N_ab, N_B - N_ab,  N_ab)
 
 						if (is.null(xsAFrameA)){
 					
@@ -977,64 +928,56 @@ PEL = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = NU
 						}
 
 						lambda <- Lag2 (z, di, zmean)
-						phat <- di_star / (rep(1,n) + (z - Zmean) %*% lambda)
-
-						phat_star <- rep (0, n)
-						for (i in 1:n) {
-							if (domains[i] == "a")
-								phat_star[i] <- phat[i] / sum(phat[domains == "a"])
-							if (domains[i] == "ab")
-								phat_star[i] <- phat[i] / sum(phat[domains == "ab"])
-							if (domains[i] == "b")
-								phat_star[i] <- phat[i] / sum(phat[domains == "b"])
-							if (domains[i] == "ba")
-								phat_star[i] <- phat[i] / sum(phat[domains == "ba"])
-						}
+						phat <- as.vector(di_star / as.vector((rep(1,n) + crossprod(t(z - Zmean), lambda))))
+						phat_star <- as.vector(phat / tapply(phat, domains, sum)[domains])
 
 						Yhatmean_a <- sum (phat_star * Domains(sample[,k], domains, "a"))
 						Yhatmean_ab <- sum (phat_star * Domains(sample[,k], domains, "ab"))
 						Yhatmean_b <- sum (phat_star * Domains(sample[,k], domains, "b"))
 						Yhatmean_ba <- sum (phat_star * Domains(sample[,k], domains, "ba"))
 
+						meandom[,k] <- c(Yhatmean_a, Yhatmean_ab, Yhatmean_b, Yhatmean_ba)
+						totdom[,k] <- meandom[,k] * domain_size_estimation
+
 						mean_estimation <- Wa * Yhatmean_a + Wab_eta_0 * Yhatmean_ab + Wba_eta_0 * Yhatmean_ba + Wb * Yhatmean_b
 						total_estimation <- N * mean_estimation
-						results[,k] <- c(total_estimation, mean_estimation)
+						est[,k] <- c(total_estimation, mean_estimation)
 
 						if (!is.null(conf_level)) {
 
 							Di_star <- diag(di_star)
 
-							suma1_a <- (t(z[domains == "a",] - Zmean[domains == "a",])) %*% Di_star[domains == "a", domains == "a"] %*% (z[domains == "a",] - Zmean[domains == "a",])
-							suma2_a <- t(z[domains == "a",] - Zmean[domains == "a",]) %*% Di_star[domains == "a", domains == "a"] %*% (sample[domains == "a",k] - mean_estimation)
-							suma1_ab <- (t(z[domains == "ab",] - Zmean[domains == "ab",])) %*% Di_star[domains == "ab", domains == "ab"] %*% (z[domains == "ab",] - Zmean[domains == "ab",])
-							suma2_ab <- t(z[domains == "ab",] - Zmean[domains == "ab",]) %*% Di_star[domains == "ab", domains == "ab"] %*% (sample[domains == "ab",k] - mean_estimation)
-							suma1_b <- (t(z[domains == "b",] - Zmean[domains == "b",])) %*% Di_star[domains == "b", domains == "b"] %*% (z[domains == "b",] - Zmean[domains == "b",])
-							suma2_b <- t(z[domains == "b",] - Zmean[domains == "b",]) %*% Di_star[domains == "b", domains == "b"] %*% (sample[domains == "b",k] - mean_estimation)
-							suma1_ba <- (t(z[domains == "ba",] - Zmean[domains == "ba",])) %*% Di_star[domains == "ba", domains == "ba"] %*% (z[domains == "ba",] - Zmean[domains == "ba",])
-							suma2_ba <- t(z[domains == "ba",] - Zmean[domains == "ba",]) %*% Di_star[domains == "ba", domains == "ba"] %*% (sample[domains == "ba",k] - mean_estimation)
-							Bhat <- solve(Wa * suma1_a + Wab_eta_0 * suma1_ab + Wba_eta_0 * suma1_ba + Wb * suma1_b) %*% (Wa * suma2_a + Wab_eta_0 * suma2_ab + Wba_eta_0 * suma2_ba + Wb * suma2_b)
+							suma1_a <- crossprod(t(crossprod(z[domains == "a",] - Zmean[domains == "a",], Di_star[domains == "a", domains == "a"])), z[domains == "a",] - Zmean[domains == "a",])
+							suma2_a <- crossprod(t(crossprod(z[domains == "a",] - Zmean[domains == "a",], Di_star[domains == "a", domains == "a"])), sample[domains == "a",k] - mean_estimation)
+							suma1_ab <- crossprod(t(crossprod(z[domains == "ab",] - Zmean[domains == "ab",], Di_star[domains == "ab", domains == "ab"])), z[domains == "ab",] - Zmean[domains == "ab",])
+							suma2_ab <- crossprod(t(crossprod(z[domains == "ab",] - Zmean[domains == "ab",], Di_star[domains == "ab", domains == "ab"])), sample[domains == "ab",k] - mean_estimation)
+							suma1_b <- crossprod(t(crossprod(z[domains == "b",] - Zmean[domains == "b",], Di_star[domains == "b", domains == "b"])), z[domains == "b",] - Zmean[domains == "b",])
+							suma2_b <- crossprod(t(crossprod(z[domains == "b",] - Zmean[domains == "b",], Di_star[domains == "b", domains == "b"])), sample[domains == "b",k] - mean_estimation)
+							suma1_ba <- crossprod(t(crossprod(z[domains == "ba",] - Zmean[domains == "ba",], Di_star[domains == "ba", domains == "ba"])), z[domains == "ba",] - Zmean[domains == "ba",])
+							suma2_ba <- crossprod(t(crossprod(z[domains == "ba",] - Zmean[domains == "ba",], Di_star[domains == "ba", domains == "ba"])), sample[domains == "ba",k] - mean_estimation)
+							Bhat <- solve(Wa * suma1_a + Wab_eta_0 * suma1_ab + Wba_eta_0 * suma1_ba + Wb * suma1_b, Wa * suma2_a + Wab_eta_0 * suma2_ab + Wba_eta_0 * suma2_ba + Wb * suma2_b)
 
-							rhat <- sample[,k] - z %*% Bhat
+							rhat <- sample[,k] - crossprod(t(z), Bhat)
 							Rhatmean_a <- sum (phat_star[domains == "a"] * rhat[domains == "a"])
 							Rhatmean_ab <- sum (phat_star[domains == "ab"] * rhat[domains == "ab"])
 							Rhatmean_b <- sum (phat_star[domains == "b"] * rhat[domains == "b"])
 							Rhatmean_ba <- sum (phat_star[domains == "ba"] * rhat[domains == "ba"])
-							r_tilde <- (rhat - Rhatmean_a) * delta_a + (eta_0 * (rhat - Rhatmean_ab)) * delta_ab + (rhat - Rhatmean_b) * delta_b + ((1 - eta_0) * (rhat[i] - Rhatmean_ba)) * delta_ba
+							r_tilde <- (rhat - Rhatmean_a) * delta_a + (eta_0 * (rhat - Rhatmean_ab)) * delta_ab + (rhat - Rhatmean_b) * delta_b + ((1 - eta_0) * (rhat - Rhatmean_ba)) * delta_ba
 							Vhat_A_Ar <- 1 / N^2 * varest (r_tilde[domains == "a" | domains == "ab"], pik = pi_A)
 							Vhat_B_Br <- 1 / N^2 * varest (r_tilde[domains == "b" | domains == "ba"], pik = pi_B)
 
-							rhatmean <- mean_estimation - t(Bhat) %*% zmean
+							rhatmean <- mean_estimation - crossprod(Bhat, zmean)
 							Rhatmean <- rep (rhatmean, n)
-							suma3_a <- t(di_star[domains == "a"]) %*% ((rhat[domains == "a"] - Rhatmean[domains == "a"])^2)
-							suma3_ab <- t(di_star[domains == "ab"]) %*% ((rhat[domains == "ab"] - Rhatmean[domains == "ab"])^2)
-							suma3_b <- t(di_star[domains == "b"]) %*% ((rhat[domains == "b"] - Rhatmean[domains == "b"])^2)
-							suma3_ba <- t(di_star[domains == "ba"]) %*% ((rhat[domains == "ba"] - Rhatmean[domains == "ba"])^2)
+							suma3_a <- crossprod(di_star[domains == "a"], (rhat[domains == "a"] - Rhatmean[domains == "a"])^2)
+							suma3_ab <- crossprod(di_star[domains == "ab"], (rhat[domains == "ab"] - Rhatmean[domains == "ab"])^2)
+							suma3_b <- crossprod(di_star[domains == "b"], (rhat[domains == "b"] - Rhatmean[domains == "b"])^2)
+							suma3_ba <- crossprod(di_star[domains == "ba"], (rhat[domains == "ba"] - Rhatmean[domains == "ba"])^2)
 							deff_P <- (Vhat_A_Ar + Vhat_B_Br) / (1 / n * (Wa * suma3_a + Wab_eta_0 * suma3_ab + Wba_eta_0 * suma3_ba + Wb * suma3_b))
 
 							conf_interv <- PELConfInt (conf_level, sample[,k], di_star, mean_estimation, n/deff_P, di_star)
 							upper <- conf_interv[1]
 							lower <- conf_interv[2]
-							results[,k] <- c(total_estimation, upper * N, lower * N, mean_estimation, upper, lower)	
+							interv[,k] <- c(total_estimation, lower * N, upper * N, mean_estimation, lower, upper)	
 						}		
 					}
 				}
@@ -1043,5 +986,8 @@ PEL = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = NU
 		else
 			stop("Invalid option: Probability vector in one frame and probability matrix in the other frame. Type of probabilities structures must match.")
 	}
-	return (results)
+   	results = list(Call = cl, Est = est, TotDomEst = totdom, MeanDomEst = meandom, Param = par, ConfInt = interv)
+   	class(results) = "EstimatorDF"
+   	attr(results, "attributesDF") = conf_level
+   	return(results)
 }
