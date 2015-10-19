@@ -7,7 +7,7 @@
 #' With this dataset it is intented to show how to properly split a joint dual frame sample into subsamples, so functions of \code{Frame2} can be used.  
 #' @usage Dat
 #' @details The survey was based on two frames: a landline frame and a cell phone frame. Landline frame was stratified by province and simple random sampling without replacement was considered
-#' in cell phone frame. The size of the whole sample was \eqn{n = 2237}.
+#' in cell phone frame. The size of the whole sample was \eqn{n = 2402}. Total of the variable Income in the whole population is \eqn{X_{Income} = 12686232063}.
 #' @format
 #' \describe{
 #'    \item{Drawnby}{Indicates whether individual was selected in the landline sample(1) or in the cell phone sample(2).}
@@ -17,6 +17,7 @@
 #'    \item{Cell}{Indicates whether individual has a cell phone(1) or not(0).}
 #'    \item{ProbLandline}{First order inclusion probability of reaching the individual by landline.}
 #'    \item{ProbCell}{First order inclusion probability of reaching the individual by cell phone.}
+#'    \item{Income}{Monthly income (in euros) of the individual.}
 #' }
 #' @examples
 #' data(Dat)
@@ -28,7 +29,7 @@
 #' 
 #' FrameLandline <- Dat[Landline == 1,]
 #' FrameCell <- Dat[Cell == 1,]
-
+#'
 #' #Equally, we can split the original dataset in three new different 
 #' #datasets, each one corresponding to one domain: first domain containing
 #' #individuals using only landline, second domain containing individuals
@@ -38,9 +39,9 @@
 #' DomainLandline <- Dat[Landline == 1 & Cell == 0,]
 #' DomainCell <- Dat[Landline == 0 & Cell == 1,]
 #' DomainBoth <- Dat[Landline == 1 & Cell == 1,]
-
+#'
 #' #From the domain datasets, we can build frame datasets
-
+#'
 #' FrameLandline <- rbind(DomainLandline, DomainBoth)
 #' FrameCell <- rbind(DomainCell, DomainBoth)
 #' @keywords datasets

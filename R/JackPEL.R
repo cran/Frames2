@@ -59,10 +59,10 @@ JackPEL = function (ysA, ysB, piA, piB, domainsA, domainsB, N_A = NULL, N_B = NU
 	piB <- as.matrix(piB)
 	if (!is.null(xsAFrameA)){
 		xsAFrameA <- as.matrix(xsAFrameA)
-		xsAFrameB <- as.matrix(xsAFrameB)
-	}
-	if (!is.null(xsBFrameA)){
 		xsBFrameA <- as.matrix(xsBFrameA)
+	}
+	if (!is.null(xsBFrameB)){
+		xsAFrameB <- as.matrix(xsAFrameB)
 		xsBFrameB <- as.matrix(xsBFrameB)
 	}
 
@@ -186,7 +186,7 @@ JackPEL = function (ysA, ysB, piA, piB, domainsA, domainsB, N_A = NULL, N_B = NU
 			}else{
 				nA <- nrow(ysA)
 				YcA <- matrix(0, nA, c)
-		
+	
 				for (i in 1:nA){
 					if (!is.null(dim(drop(piA))))
 						YcA[i,] <- PEL(ysA[-i,], ysB, piA[-i,-i], piB, domainsA[-i], domainsB, N_A, N_B, N_ab, xsAFrameA[-i,], xsBFrameA, xsAFrameB[-i,], xsBFrameB, XA, XB)[[2]][1,]

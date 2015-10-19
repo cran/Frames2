@@ -24,6 +24,8 @@ export(VarHT)
 export(WeightsCalDF)
 export(WeightsCalSF)
 import(sampling)
+import(stats)
+import(utils)
 
 S3method(print, EstimatorDF)
 S3method(summary, EstimatorDF)

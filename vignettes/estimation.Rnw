@@ -1,10 +1,10 @@
-%\VignetteIndexEntry{Estimation in a dual frame context}
 \documentclass{article}
 \usepackage{url}
 \usepackage{Sweave}
 \author{A. Arcos, M. Rueda, M. G. Ranalli and D. Molina}
 \title{Estimation in a dual frame context}
 
+% \VignetteIndexEntry{Estimation in a dual frame context}
 \begin{document}
 \SweaveOpts{concordance=TRUE}
 \maketitle

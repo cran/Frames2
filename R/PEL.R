@@ -6,7 +6,7 @@
 #'  from a dual frame sampling design. Confidence intervals for the population total are also computed, if required.
 #' 
 #' @usage PEL(ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = NULL, 
-#' N_ab = NULL, xsAFrameA = NULL, xsAFrameB = NULL, xsBFrameA = NULL, xsBFrameB = NULL, 
+#' N_ab = NULL, xsAFrameA = NULL, xsBFrameA = NULL, xsAFrameB = NULL, xsBFrameB = NULL, 
 #' XA = NULL, XB = NULL, conf_level = NULL)
 #' @param ysA A numeric vector of length \eqn{n_A} or a numeric matrix or data frame of dimensions \eqn{n_A} x \eqn{c} containing information about variable(s) of interest from \eqn{s_A}.
 #' @param ysB A numeric vector of length \eqn{n_B} or a numeric matrix or data frame of dimensions \eqn{n_B} x \eqn{c} containing information about variable(s) of interest from \eqn{s_B}.
@@ -85,7 +85,7 @@
 #' xsAFrameB = DatA$M2, xsBFrameB = DatB$M2, XA = 4300260, XB = 176553, 
 #' conf_level = 0.90)
 #' @export
-PEL = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = NULL, N_ab = NULL, xsAFrameA = NULL, xsAFrameB = NULL, xsBFrameA = NULL, xsBFrameB = NULL, XA = NULL, XB = NULL, conf_level = NULL)
+PEL = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = NULL, N_ab = NULL, xsAFrameA = NULL, xsBFrameA = NULL, xsAFrameB = NULL, xsBFrameB = NULL, XA = NULL, XB = NULL, conf_level = NULL)
 {
 	cnames <- names(ysA)
 	ysA <- as.matrix(ysA)
@@ -613,8 +613,8 @@ PEL = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = NU
 
 						if (is.null(N_A) & is.null(N_B)) {
 
-							Nhat_A <- HT (ysA[,k], pi_A)
-							Nhat_B <- HT (ysB[,k], pi_B)
+							Nhat_A <- HT (ones_a_A + ones_ab_A, pi_A)
+							Nhat_B <- HT (ones_b_B + ones_ab_B, pi_B)
 							Nhat_P <- Nhat_A + Nhat_B - Nhat_abP
 	
 							Wa <- (Nhat_A - Nhat_abP) / Nhat_P
@@ -885,7 +885,7 @@ PEL = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = NU
 						if (is.null(xsAFrameA)){
 					
 							xsAFrameB <- as.matrix(xsAFrameB); xsBFrameB <- as.matrix(xsBFrameB)
-							XFrameB <- rbind(xsBFrameA, xsBFrameB)
+							XFrameB <- rbind(xsAFrameB, xsBFrameB)
 							z5 <- matrix(0, n, ncol(XFrameB))
 							z5[domains == "b",] <- XFrameB[domains == "b",]
 							z5[domains == "ba",] <- XFrameB[domains == "ba",]/(1 - eta_0)
@@ -913,7 +913,7 @@ PEL = function (ysA, ysB, pi_A, pi_B, domains_A, domains_B, N_A = NULL, N_B = NU
 								xsAFrameA <- as.matrix(xsAFrameA); xsBFrameA <- as.matrix(xsBFrameA)
 								XFrameA <- rbind(xsAFrameA, xsBFrameA)
 								xsAFrameB <- as.matrix(xsAFrameB); xsBFrameB <- as.matrix(xsBFrameB)
-								XFrameB <- rbind(xsBFrameA, xsBFrameB)
+								XFrameB <- rbind(xsAFrameB, xsBFrameB)
 								z5 <- matrix(0, n, ncol(XFrameA))
 								z5[domains == "a",] <- XFrameA[domains == "a",]
 								z5[domains == "ab",] <- XFrameA[domains == "ab",]/eta_0

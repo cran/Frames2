@@ -192,7 +192,7 @@ JackHartley = function (ysA, ysB, piA, piB, domainsA, domainsB, conf_level, sdA 
 				YcAMean <- matrix(colMeans(YcA), nA, c, byrow = TRUE)
 	
 				if (fcpA)
-					1 - mean(pikA)
+					fA <- 1 - mean(pikA)
 				else
 					fA <- 1
 

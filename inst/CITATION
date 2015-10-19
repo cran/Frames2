@@ -1,0 +1,25 @@
+year <- sub("-.*", "", meta$Date)
+note <- sprintf("R package version %s", meta$Version)
+
+bibentry(bibtype = "Manual",
+         title = "{Frames2}: Estimation in Dual Frame Surveys",
+         author = c(person("Antonio", "Arcos"),
+                    person("Maria del Mar", "Rueda"),
+                    person("Maria Giovanna", "Ranalli"),
+                    person("David", "Molina")),
+         year = year,
+         note = note,
+         url = "http://CRAN.R-project.org/package=Frames2")
+
+bibentry(bibtype = "Article",
+         title = "Frames2: A package for estimation in dual frame surveys",
+         author = c(person("Antonio", "Arcos"),
+                    person("David", "Molina"),
+                    person("Maria Giovanna", "Ranalli"),
+                    person("Maria del Mar", "Rueda")),
+         journal = "The R Journal",
+         volumen = "7",
+         number = "1",
+         pages = "52 -- 72",
+         year = "2015")
+      

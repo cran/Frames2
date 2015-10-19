@@ -76,10 +76,10 @@ JackCalSF = function (ysA, ysB, piA, piB, pik_ab_B, pik_ba_A, domainsA, domainsB
 	piB <- as.matrix(piB)
 	if (!is.null(xsAFrameA)){
 		xsAFrameA <- as.matrix(xsAFrameA)
-		xsAFrameB <- as.matrix(xsAFrameB)
-	}
-	if (!is.null(xsBFrameA)){
 		xsBFrameA <- as.matrix(xsBFrameA)
+	}
+	if (!is.null(xsBFrameB)){
+		xsAFrameB <- as.matrix(xsAFrameB)
 		xsBFrameB <- as.matrix(xsBFrameB)
 	}
 	if (!is.null(xsT))
