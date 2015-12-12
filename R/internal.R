@@ -114,3 +114,14 @@ PELConfInt = function (a, ys, ds, YEL, nss, ps)
   	print(object$ConfInt)
   }
 }
+
+`print.EstimatorMDF`=function(x, ...){
+  if (is.null(attr(x, "attributesMDF")[1])){
+  	cat("\nEstimation:\n")
+  	print(x$Est)
+  }
+  else {
+	cat("\nEstimation and ",attr(x, "attributesMDF")[1]*100,"% Confidence Intervals:\n")
+  	print(x$ConfInt)
+  }
+}

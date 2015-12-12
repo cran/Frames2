@@ -155,7 +155,7 @@ While pseudo-empirical likelihood estimator has been computed considering only a
 
 \begin{thebibliography}{99}
 
-\bibitem{Arcos2015} Arcos, A., Molina, D., Rueda, M. and Ranalli, M. G. (2015). \emph{Frames2: A Package for Estimation in Dual Frame Surveys}. The R Journal. To be printed.
+\bibitem{Arcos2015} Arcos, A., Molina, D., Rueda, M. and Ranalli, M. G. (2015). \emph{Frames2: A Package for Estimation in Dual Frame Surveys}. The R Journal, 7(1), 52 - 72.
 
 \bibitem{Bankier1986} Bankier, M.D. (1986). \emph{Estimators Based on Several Stratified Samples With Applications to Multiple Frame Surveys}. Journal of the American Statistical Association, Vol. 81, 1074 - 1079.
 

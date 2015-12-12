@@ -68,6 +68,8 @@ Hartley(FrameLandline$Opinion, FrameCell$Opinion,
 
 \begin{thebibliography}{99}
 
+\bibitem{Arcos2015} Arcos, A., Molina, D., Rueda, M. and Ranalli, M. G. (2015). \emph{Frames2: A Package for Estimation in Dual Frame Surveys}. The R Journal, 7(1), 52 - 72.
+
 \bibitem{Hartley1962} Hartley, H.O. (1962). \emph{Multiple Frame Surveys}. Proceedings of the American Statistical Association, Social Statistics Sections, 203 - 206.
 
 \bibitem{Hartley1974} Hartley, H.O. (1974). \emph{Multiple frame methodology and selected applications}. Sankhya C., Vol. 36, 99 - 118.
